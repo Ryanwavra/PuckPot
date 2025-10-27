@@ -1,0 +1,20 @@
+[
+  {
+    "id": "game_001",
+    "teams": "NY Rangers vs Boston Bruins",
+    "time": "7:00 PM ET",
+    "location": "Madison Square Garden"
+  },
+  {
+    "id": "game_002",
+    "teams": "Toronto Maple Leafs vs Montreal Canadiens",
+    "time": "8:30 PM ET",
+    "location": "Scotiabank Arena"
+  },
+  {
+    "id": "game_003",
+    "teams": "Chicago Blackhawks vs Detroit Red Wings",
+    "time": "9:00 PM ET",
+    "location": "United Center"
+  }
+]

@@ -34,3 +34,54 @@ button {
     height: 4vh;
     border-radius: 30px;
 }
+
+/* ===============================
+  Game cards
+================================ */
+
+.game-card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid white;
+}
+
+.game-header {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 2vw;
+    border-bottom: 1px solid white;
+}
+
+.game-content {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.away-team, .home-team {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin: 0;
+    padding: 2vh;
+    line-height: 1; 
+    align-items: center;
+}
+
+.away-team h3,
+.away-team p,
+.home-team h3,
+.home-team p {
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.away-team p, .home-team p {
+    font-size: smaller;
+}
+
+
