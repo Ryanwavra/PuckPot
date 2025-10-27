@@ -44,6 +44,7 @@ button {
     display: flex;
     flex-direction: column;
     border: 1px solid white;
+    margin-bottom: 2vh;
 }
 
 .game-header {
