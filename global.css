@@ -1,0 +1,65 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    width: 100vw;
+    background: #1E201E;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+    padding: 2vh 2vw;
+}
+
+/* ===============================
+   Header Section
+================================ */
+.header {
+    width: 100%;
+    display: flex;
+    padding: 0 2vw;
+    border-bottom: 1px solid darkslategray;
+    padding-bottom: 2vh;
+}
+
+.header .pfp {
+    margin-left: auto;
+}
+
+/* ===============================
+   footer section
+================================ */
+
+
+
+.footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid white;
+    padding: 2vh 0;
+}
+
+.footer > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5vh;
+}

@@ -1,0 +1,89 @@
+
+/* ===============================
+   Countdown Section
+================================ */
+
+.countdown {
+    width: 100%;
+    border: 1px solid white;
+    border-radius: 5px;
+    padding: 3vh 2vw;
+}
+
+.countdown .Heading {
+   text-align: center;
+   margin-bottom: 1vh; 
+}
+
+.countdown-content {
+    display: flex;
+    justify-content: center;
+    gap: 15vw;
+}
+
+.time-block {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+/* ===============================
+   Pot Section
+================================ */
+.pot-info {
+    width: 100%;
+    border: 1px solid white;
+    border-radius: 5px;
+    padding: 3vh 10vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1vh
+}
+
+.pot-info .title {
+    font-size: 1rem;
+}
+
+.total-pot {
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.pot-info .description {
+    text-align: center;
+}
+
+.pot-info button {
+    margin-top: 1vh;
+    width: 80vw;
+    height: 4vh;
+    border-radius: 30px;
+}
+
+/* ===============================
+   How it works section
+================================ */
+
+.how-it-works {
+    width: 100%;
+    border: 1px solid white;
+    border-radius: 5px;
+    padding: 3vh 3vw;
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+}
+
+.how-it-works .title {
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 500;
+}
+
+.rules-list ol {
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+}
+
