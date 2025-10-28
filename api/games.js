@@ -2,7 +2,11 @@
 export default async function handler(req, res) {
   try {
     // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const today = now.toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    }); 
+
 
     // Call the official NHL API
     const response = await fetch(`https://api-web.nhle.com/v1/schedule/${today}`);
