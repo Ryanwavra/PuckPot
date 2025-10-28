@@ -1,16 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="global.css" />
-    <link rel="stylesheet" href="index.css" />
-  </head>
+    <link rel="stylesheet" href="global.css">
 
-  <body>
+    <style>
+        .content {
+            display:flex;
+            flex-direction: column;
+            width: 100%;
+            align-items: center;
+        }
+
+        .button {
+          width: 90vw;
+          text-align: center;
+          background-color: white;
+          padding: 1vh;
+          border-radius: 30px;
+          text-decoration: none;
+          color: black;
+        }
+
+
+    </style>
+</head>
+<body>
     <div class="app-container">
       <main>
+
         <!--Header-->
         <section class="header-section">
           <div class="header">
@@ -19,59 +39,19 @@
           </div>
         </section>
 
-        <!--Countdown-->
-        <section class="countdown-section">
-          <div class="countdown">
-            <div class="heading">PICKS LOCK IN</div>
-            <div class="countdown-content">
-              <div class="time-block">
-                <div id="hourCount">0</div>
-                <div id="HRS">HRS</div>
-              </div>
-              <div class="time-block">
-                <div id="minCount">0</div>
-                <div id="MIN">MIN</div>
-              </div>
-              <div class="time-block">
-                <div id="secCount">0</div>
-                <div id="SEC">SEC</div>
-              </div>
-            </div>
-          </div>
+        <!--CONTENT-->
+        <section class="content">
+            <h1>Profile coming soon!</h1>
+            <p>Not currently available in beta.</p>
+            <a href="index.html" class="button">HOME</a>
         </section>
 
-        <!--Pot info-->
-        <section class="pot-section">
-          <div class="pot-info">
-            <div class="title">$1 ENTRY FEE</div>
-            <div class="total-pot">$0 Total Pot</div>
-            <div class="total-players">0 players already joined</div>
-            <div class="description">
-              Join the pot and guess which NHL teams will take the win home
-              tonight.
-            </div>
-            <a href="picks.html" class="btn"><button>MAKE PICKS</button></a>
-          </div>
-        </section>
 
-        <!--How it works-->
-        <section class="how-it-works-section">
-          <div class="how-it-works">
-            <div class="title">HOW IT WORKS</div>
-            <div class="rules-list">
-              <ol>
-                <li>Pick winners for all games today</li>
-                <li>Pay entry fee in USDC on Base</li>
-                <li>Picks lock prior to first puck drop</li>
-                <li>Winner takes the pot</li>
-              </ol>
-            </div>
-          </div>
-        </section>
+
       </main>
-      <!--Footer-->
+        <!--Footer-->
       <footer class="footer">
-        <div class="home">
+        <a href="index.html" class="home">
           <div class="home-icon svg">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -87,7 +67,7 @@
             </svg>
           </div>
           <div class="home-word">Home</div>
-        </div>
+        </a>
         <a href="picks.html" class="picks">
             <div class="picks-icon svg">
               <svg
@@ -129,7 +109,7 @@
           </div>
           <div class="rankings-word">Rankings</div>
         </a>
-        <a href="profilebeta.html" class="profile">
+        <div class="profile">
           <div class="profile-icon svg">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -145,8 +125,9 @@
             </svg>
           </div>
           <div class="profile-word">Profile</div>
-        </a>
+        </div>
       </footer>
     </div>
-  </body>
+    
+</body>
 </html>

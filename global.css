@@ -86,9 +86,12 @@ main {
     padding: 2vh 0;
 }
 
+.footer > a,
 .footer > div {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5vh;
+  color: inherit;
+  text-decoration: none;
 }
