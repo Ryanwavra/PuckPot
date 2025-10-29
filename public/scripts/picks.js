@@ -109,7 +109,13 @@ loadGames();
 
 document.getElementById("submit-picks").addEventListener("click", async () => {
   const userId = "demo-user"; // Replace with real user logic later
-  const tieBreaker = 5; // Example: total goals in final game
+  const tieBreaker = document.getElementById("tieBreaker").value;
+
+  // Optional: enforce that a value is entered
+  if (!tieBreaker) {
+    alert("Please enter a tiebreaker guess before submitting.");
+    return;
+  }
 
   try {
     const res = await fetch("/api/submit", {
