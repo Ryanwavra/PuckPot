@@ -32,18 +32,21 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     const games = (data.gameWeek?.flatMap(w => w.games) || [])
-      .map(g => {
-        const startTimeUTC = new Date(g.startTimeUTC);
-        return {
-          gameId: g.id,
-          homeTeam: g.homeTeam.abbrev,
-          awayTeam: g.awayTeam.abbrev,
-          startTimeUTC,
-          status: normalizeStatus(g.gameState), // 👈 use helper here
-        };
-      })
-      .filter(g => g.startTimeUTC >= start && g.startTimeUTC <= end);
-
+  .map(g => {
+    const startTimeUTC = new Date(g.startTimeUTC);
+    const startTimeEST = new Date(
+      new Date(g.startTimeUTC).toLocaleString("en-US", { timeZone: "America/New_York" })
+    );
+    return {
+      gameId: g.id,
+      homeTeam: g.homeTeam.abbrev,
+      awayTeam: g.awayTeam.abbrev,
+      startTimeUTC,
+      startTimeEST,
+      status: normalizeStatus(g.gameState),
+    };
+  })
+  .filter(g => g.startTimeUTC >= start && g.startTimeUTC <= end);
     res.status(200).json({
       success: true,
       contestId,

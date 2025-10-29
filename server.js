@@ -12,6 +12,8 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(express.json());
 
+app.use(express.static("public"));
+
 // Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -69,6 +71,8 @@ app.get("/api/games", async (req, res) => {
     const { start, end } = getContestWindowEST(nowEST());
     const contestId = contestIdEST();
 
+    console.log("Contest window:", start, end, "Contest ID:", contestId);
+
     // Fetch NHL schedule for contest start date
     const contestDate = start.toLocaleDateString("en-CA", {
       timeZone: "America/New_York",
@@ -76,6 +80,8 @@ app.get("/api/games", async (req, res) => {
     const apiUrl = `https://api-web.nhle.com/v1/schedule/${contestDate}`;
     const response = await fetch(apiUrl);
     const data = await response.json();
+
+    console.log("Raw NHL data keys:", Object.keys(data));
 
     // Normalize and filter games into contest window
     const games = (data.gameWeek?.flatMap((w) => w.games) || [])
@@ -90,6 +96,8 @@ app.get("/api/games", async (req, res) => {
         };
       })
       .filter((g) => g.startTimeEST >= start && g.startTimeEST <= end);
+
+    console.log("Normalized games:", games);
 
     // Ensure contest row exists
     await supabase.from("contests").upsert([
