@@ -30,6 +30,7 @@ function selectPick(gameId, team, cardEl, side) {
 }
 
 let games = [];
+let contestId = null;
 
 async function loadGames() {
   try {
@@ -37,6 +38,7 @@ async function loadGames() {
     const data = await res.json();
 
     games = data.games || [];
+    contestId = data.contestId; // ✅ capture contestId from backend
 
     const template = document.getElementById("games-template");
     const section = document.querySelector(".games-section");
@@ -48,16 +50,19 @@ async function loadGames() {
       const msg = document.createElement("p");
       msg.textContent = "No games scheduled for this contest window.";
       section.appendChild(msg);
-      return;
+      return null; // nothing to hydrate
     }
 
     data.games.forEach(game => renderGame(game, template, section));
+
+    return contestId; // ✅ return it explicitly
   } catch (err) {
     console.error("Error fetching NHL games:", err);
     const section = document.querySelector(".games-section");
     const msg = document.createElement("p");
     msg.textContent = "Failed to load games.";
     section.appendChild(msg);
+    return null;
   }
 }
 
@@ -84,6 +89,9 @@ function renderGame(game, template, section) {
   const clone = template.cloneNode(true);
   clone.style.display = "block";
   clone.removeAttribute("id");
+
+  // Add data-game-id so we can find this card later
+  clone.setAttribute("data-game-id", game.gameId);
 
   // Convert UTC → EST for display
   // Use startTimeEST directly
@@ -162,3 +170,61 @@ document.getElementById("submit-picks").addEventListener("click", async () => {
     alert("⚠️ Something went wrong.");
   }
 });
+
+async function hydrateUserPicks(userId, contestId) {
+  console.log("hydrateUserPicks called with:", userId, contestId);
+  try {
+    const url = `/api/submission/${contestId}?userId=${userId}`;
+    console.log("Hydrate fetch URL:", url);
+
+    const res = await fetch(url);
+    console.log("Hydrate raw status:", res.status);
+
+    const data = await res.json();
+    console.log("Hydrate response JSON:", data);
+
+    if (!data.submission) return;
+
+    const { picks, tie_breaker } = data.submission;
+
+    Object.entries(picks).forEach(([gameId, team]) => {
+      const card = document.querySelector(`[data-game-id="${gameId}"]`);
+      if (!card) return;
+
+      const awayName = card.querySelector(".away-symbol h3").textContent;
+      const homeName = card.querySelector(".home-symbol h3").textContent;
+
+      const targetDiv =
+        team === awayName
+          ? card.querySelector(".away-team")
+          : card.querySelector(".home-team");
+
+      if (targetDiv) targetDiv.classList.add("selected");
+
+      // Prevent changes after submission
+      card.querySelectorAll(".away-team, .home-team").forEach(div => {
+        div.style.pointerEvents = "none";
+      });
+    });
+
+    // Lock the submit UI
+    const btn = document.getElementById("submit-picks");
+    btn.disabled = true;
+    btn.innerText = "Picks submitted";
+
+    // Optional: restore tiebreaker
+    if (tie_breaker !== undefined && tie_breaker !== null) {
+      document.getElementById("tieBreaker").value = tie_breaker;
+      document.getElementById("tieBreaker").disabled = true;
+    }
+  } catch (err) {
+    console.error("Error hydrating user picks:", err);
+  }
+}
+
+(async () => {
+  const cid = await loadGames();   // ✅ get contestId directly
+  if (cid) {
+    await hydrateUserPicks("demo-user", cid);
+  }
+})();
