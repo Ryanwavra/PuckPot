@@ -1,4 +1,4 @@
-import { getContestWindowUTC, contestIdUTC } from "../utils/time.js";
+import { getContestWindowEST, nowEST } from "../utils/time.js";
 
 // 👇 Step 1: add this helper at the top
 function normalizeStatus(state) {
@@ -19,8 +19,8 @@ function normalizeStatus(state) {
 
 export default async function handler(req, res) {
   try {
-    const { start, end } = getContestWindowUTC(new Date());
-    const contestId = contestIdUTC();
+    const { start, end } = getContestWindowEST(nowEST());
+    const contestId = start.toISOString().split("T")[0];
 
     const contestDate = start.toISOString().slice(0, 10);
 
@@ -56,6 +56,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("API error:", err);
-    res.status(500).json({ error: "Failed to fetch NHL data" });
+    res.status(500).json({ error: "Unknown error" });
   }
 }

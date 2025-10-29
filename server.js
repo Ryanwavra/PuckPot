@@ -24,17 +24,27 @@ const supabase = createClient(
 app.post("/api/submit", async (req, res) => {
   const { userId, picks, tieBreaker } = req.body;
   try {
-    const contestId = contestIdEST(); // always derive from EST window
+    const { start } = getContestWindowEST(nowEST());
+    const contestId = start.toISOString().split("T")[0]; // always derive from EST window
 
-    // Check contest exists and is open
+    //Check contest exists and is open
     const { data: contest, error: contestError } = await supabase
       .from("contests")
       .select("lock_time,status")
       .eq("id", contestId)
       .single();
+    if (!contest) {
+      console.error("❌ No contest found for ID:", contestId);
+      return res.status(404).json({ error: "Contest not found" });
+    }
 
-    if (contestError) throw contestError;
-    if (!contest) return res.status(400).json({ error: "Contest not found" });
+    
+
+      console.log("🧠 Submitting for contestId:", contestId);
+      console.log("⏰ Contest lock_time (UTC):", contest.lock_time);
+      console.log("📍 Contest status:", contest.status);
+      console.log("🕒 Current time (EST):", nowEST().toISOString());
+
 
     const now = nowEST();
     if (contest.status !== "open" || new Date(contest.lock_time) <= now) {
@@ -53,13 +63,21 @@ app.post("/api/submit", async (req, res) => {
     }
 
     // Insert submission
-    const { data, error } = await supabase
-      .from("submissions")
-      .insert([{ user_id: userId, contest_id: contestId, picks, tie_breaker: tieBreaker }])
-      .select();
+   const { data, error } = await supabase
+  .from("submissions")
+  .insert([{ user_id: userId, contest_id: contestId, picks, tie_breaker: tieBreaker }])
+  .select();
 
-    if (error) throw error;
-    res.json({ success: true, submission: data[0] });
+if (error) {
+  console.error("❌ Supabase insert error:", error.message);
+  return res.status(500).json({ error: error.message });
+}
+
+if (!data || data.length === 0) {
+  console.warn("⚠️ Insert succeeded but no data returned");
+} else {
+  console.log("✅ Submission saved:", data);
+}
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -100,18 +118,31 @@ app.get("/api/games", async (req, res) => {
     console.log("Normalized games:", games);
 
     // Ensure contest row exists
+    // Force reset_time to 7:00 AM EST on contest day
+    const resetEST = new Date(`${contestId}T07:00:00`);
+    const resetUTC = toEST(resetEST); // returns UTC version of 7:00 AM EST
+
     await supabase.from("contests").upsert([
       {
         id: contestId,
         lock_time: games.length
-          ? new Date(Math.min(...games.map((g) => g.startTimeEST.getTime())) - 30 * 60000).toISOString()
+          ? new Date(
+              Math.min(...games.map((g) => g.startTimeEST.getTime())) -
+                30 * 60000
+            ).toISOString()
           : null,
-        reset_time: start.toISOString(),
+        reset_time: resetUTC.toISOString(),
         status: "open",
       },
     ]);
 
-    res.json({ success: true, contestId, contestStart: start, contestEnd: end, games });
+    res.json({
+      success: true,
+      contestId,
+      contestStart: start,
+      contestEnd: end,
+      games,
+    });
   } catch (err) {
     console.error("API error:", err);
     res.status(500).json({ error: "Failed to fetch NHL schedule" });
@@ -158,11 +189,9 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve picks.html explicitly
 app.get("/picks.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "picks.html"));
 });

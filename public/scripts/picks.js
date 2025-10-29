@@ -106,3 +106,30 @@ if (!game.startTimeEST || isNaN(new Date(game.startTimeEST))) {
 
 // Run on page load
 loadGames();
+
+document.getElementById("submit-picks").addEventListener("click", async () => {
+  const userId = "demo-user"; // Replace with real user logic later
+  const tieBreaker = 5; // Example: total goals in final game
+
+  try {
+    const res = await fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        picks: userPicks,
+        tieBreaker,
+      }),
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      alert("✅ Picks submitted successfully!");
+    } else {
+      alert("❌ Submission failed: " + result.error);
+    }
+  } catch (err) {
+    console.error("Submission error:", err);
+    alert("⚠️ Something went wrong.");
+  }
+});
