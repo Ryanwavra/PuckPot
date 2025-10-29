@@ -19,6 +19,20 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
+     // 🔎 Debug logs
+    console.log("Contest window:", start, "→", end);
+    (data.gameWeek?.flatMap(w => w.games) || []).forEach(g => {
+      console.log(
+        "Game:",
+        g.id,
+        "UTC:",
+        g.startTimeUTC,
+        "EST:",
+        toEST(g.startTimeUTC)
+      );
+    });
+
+
     // Normalize and filter games into a simpler structure
     const games =
       data.gameWeek?.[0]?.games
