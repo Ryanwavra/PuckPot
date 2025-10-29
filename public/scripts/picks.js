@@ -3,6 +3,17 @@
 // Store user picks in memory on the client
 const userPicks = {}; // { gameId: "TEAM" }
 
+// --- Validation helpers ---
+function allGamesPicked(games, userPicks) {
+  // games will be loaded by loadGames()
+  return games.length > 0 && games.every(game => userPicks[game.gameId]);
+}
+
+function validTieBreaker() {
+  const tieBreaker = document.getElementById("tieBreaker").value;
+  return tieBreaker !== "" && !isNaN(tieBreaker);
+}
+
 function selectPick(gameId, team, cardEl, side) {
   // Save the pick
   userPicks[gameId] = team;
@@ -18,10 +29,14 @@ function selectPick(gameId, team, cardEl, side) {
   console.log("Current picks:", userPicks);
 }
 
+let games = [];
+
 async function loadGames() {
   try {
     const res = await fetch("/api/games");
     const data = await res.json();
+
+    games = data.games || [];
 
     const template = document.getElementById("games-template");
     const section = document.querySelector(".games-section");
@@ -111,9 +126,15 @@ document.getElementById("submit-picks").addEventListener("click", async () => {
   const userId = "demo-user"; // Replace with real user logic later
   const tieBreaker = document.getElementById("tieBreaker").value;
 
-  // Optional: enforce that a value is entered
-  if (!tieBreaker) {
-    alert("Please enter a tiebreaker guess before submitting.");
+  // ✅ Require all games picked
+  if (!allGamesPicked(games, userPicks)) {
+    alert("❌ Please make a pick for every game before submitting.");
+    return;
+  }
+
+  // ✅ Require valid tiebreaker
+  if (!validTieBreaker()) {
+    alert("❌ Please enter a valid number for the tiebreaker guess.");
     return;
   }
 
@@ -124,13 +145,15 @@ document.getElementById("submit-picks").addEventListener("click", async () => {
       body: JSON.stringify({
         userId,
         picks: userPicks,
-        tieBreaker,
+        tieBreaker: parseInt(tieBreaker, 10),
       }),
     });
 
     const result = await res.json();
     if (result.success) {
       alert("✅ Picks submitted successfully!");
+      document.getElementById("submit-picks").disabled = true;
+      document.getElementById("submit-picks").innerText = "Picks submitted";
     } else {
       alert("❌ Submission failed: " + result.error);
     }
