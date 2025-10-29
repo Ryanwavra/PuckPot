@@ -155,4 +155,16 @@ app.get("/api/scores/:date", async (req, res) => {
 // ✅ Health check
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Resolve __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve picks.html explicitly
+app.get("/picks.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "picks.html"));
+});
+
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
