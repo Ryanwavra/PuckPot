@@ -1,15 +1,14 @@
 // api/games.js
-import { nowEST, getContestWindowEST, toEST } from "../utils/time.js";
+import { getContestWindowUTC, contestIdUTC } from "../utils/time.js";
 
 export default async function handler(req, res) {
   try {
-    // Get the current contest window in EST
-    const { start, end } = getContestWindowEST(nowEST());
+    // Get the current contest window in UTC
+    const { start, end } = getContestWindowUTC(new Date());
+    const contestId = contestIdUTC();
 
-    // Use the contestId date (YYYY-MM-DD EST) to query NHL API
-    const contestDate = start.toLocaleDateString("en-CA", {
-      timeZone: "America/New_York",
-    });
+    // Use contest start date (YYYY-MM-DD UTC) to query NHL API
+    const contestDate = start.toISOString().slice(0, 10);
 
     // Call the official NHL API
     const response = await fetch(`https://api-web.nhle.com/v1/schedule/${contestDate}`);
@@ -19,48 +18,26 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-     // 🔎 Debug logs
-    console.log("Contest window:", start, "→", end);
-    (data.gameWeek?.flatMap(w => w.games) || []).forEach(g => {
-      console.log(
-        "Game:",
-        g.id,
-        "UTC:",
-        g.startTimeUTC,
-        "EST:",
-        toEST(g.startTimeUTC)
-      );
-    });
-
-
-    // Normalize and filter games into a simpler structure
-    const games =
-      data.gameWeek?.[0]?.games
-        .map((g) => {
-          const startTimeEST = toEST(g.startTimeUTC);
-          return {
-            gameId: g.id,
-            date: startTimeEST.toLocaleDateString("en-US", {
-              timeZone: "America/New_York",
-            }),
-            time: startTimeEST.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              timeZone: "America/New_York",
-            }),
-            status: g.gameState === "FUT" ? "Upcoming" : g.gameState,
-            awayTeam: g.awayTeam.abbrev,
-            homeTeam: g.homeTeam.abbrev,
-            startTimeEST,
-          };
-        })
-        // Only include games inside the contest window
-        .filter((g) => g.startTimeEST >= start && g.startTimeEST <= end) || [];
+    // Normalize and filter games into UTC
+    const games = (data.gameWeek?.flatMap(w => w.games) || [])
+      .map(g => {
+        const startTimeUTC = new Date(g.startTimeUTC);
+        return {
+          gameId: g.id,
+          homeTeam: g.homeTeam.abbrev,
+          awayTeam: g.awayTeam.abbrev,
+          startTimeUTC, // keep in UTC
+          status: g.gameState === "FUT" ? "Upcoming" : g.gameState,
+        };
+      })
+      // ✅ Only include games inside the UTC contest window
+      .filter(g => g.startTimeUTC >= start && g.startTimeUTC <= end);
 
     res.status(200).json({
       success: true,
-      contestStart: start,
-      contestEnd: end,
+      contestId,
+      contestStartUTC: start,
+      contestEndUTC: end,
       games,
     });
   } catch (err) {

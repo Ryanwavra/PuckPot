@@ -1,34 +1,41 @@
 // utils/time.js
 
-// Current time in EST
-function nowEST() {
-  return new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+// Detect if a given date is in US Eastern Daylight Time (DST)
+function isEasternDST(date = new Date()) {
+  // Jan and July offsets in minutes
+  const jan = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const jul = new Date(Date.UTC(date.getUTCFullYear(), 6, 1));
+  const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+  return date.getTimezoneOffset() < stdOffset;
 }
 
-// Contest window: 7 AM EST → 6:59:59 AM next day
-function getContestWindowEST(base = nowEST()) {
-  const start = new Date(base);
-  start.setHours(7, 0, 0, 0);
-  if (base < start) start.setDate(start.getDate() - 1); // roll back if before 7 AM
+// Get contest window in UTC
+function getContestWindowUTC(base = new Date()) {
+  const resetHourUTC = isEasternDST(base) ? 11 : 12; // 11 UTC in summer, 12 UTC in winter
+
+  // Start of contest window
+  const start = new Date(Date.UTC(
+    base.getUTCFullYear(),
+    base.getUTCMonth(),
+    base.getUTCDate(),
+    resetHourUTC, 0, 0, 0
+  ));
+
+  // If current time is before reset, roll back to yesterday’s reset
+  if (base < start) start.setUTCDate(start.getUTCDate() - 1);
+
+  // End = start + 24h
   const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  end.setUTCDate(end.getUTCDate() + 1);
   end.setMilliseconds(-1);
+
   return { start, end };
 }
 
-// Contest ID = YYYY-MM-DD (based on contest start date in EST)
-function contestIdEST(base = nowEST()) {
-  const { start } = getContestWindowEST(base);
-  const y = start.getFullYear();
-  const m = String(start.getMonth() + 1).padStart(2, "0");
-  const d = String(start.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+// Contest ID (YYYY-MM-DD based on UTC reset)
+function contestIdUTC(base = new Date()) {
+  const { start } = getContestWindowUTC(base);
+  return start.toISOString().slice(0, 10);
 }
 
-// Convert NHL UTC timestamp → EST Date
-function toEST(dateStrUTC) {
-  const utc = new Date(dateStrUTC);
-  return new Date(utc.toLocaleString("en-US", { timeZone: "America/New_York" }));
-}
-
-module.exports = { nowEST, getContestWindowEST, contestIdEST, toEST };
+module.exports = { getContestWindowUTC, contestIdUTC };
