@@ -1,13 +1,20 @@
+
+
 // server.js
+import dotenv from "dotenv";
+dotenv.config();
+
+console.log("🔍 Raw env check:");
+console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log("KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+console.log("ROLE:", process.env.SUPABASE_SERVICE_ROLE_KEY);
+
 import express from "express";
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
 import { nowEST, getContestId, getResetTimeUTC, toEST } from "./utils/time.js";
 import path from "path";
 import { fileURLToPath } from "url";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
