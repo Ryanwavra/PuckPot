@@ -4,11 +4,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-console.log("🔍 Raw env check:");
-console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-console.log("KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-console.log("ROLE:", process.env.SUPABASE_SERVICE_ROLE_KEY);
-
 import express from "express";
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
@@ -213,6 +208,120 @@ if (state && ["FINAL", "OFF"].includes(state.toUpperCase())) {
   } catch (err) {
     console.error("Score fetch error:", err);
     res.status(500).json({ error: "Failed to fetch NHL scores" });
+  }
+});
+
+// ✅ Determine results for a contest
+app.get("/api/results/:contestId", async (req, res) => {
+  try {
+    const { contestId } = req.params;
+
+    // 1. Fetch submissions for this contest
+    const { data: submissions, error: subError } = await supabase
+      .from("submissions")
+      .select("*")
+      .eq("contest_id", contestId);
+
+    if (subError) throw subError;
+
+    // 2. Fetch scores for this contest date
+    const scoreRes = await fetch(`http://localhost:${PORT}/api/scores/${contestId}`);
+    const scoreData = await scoreRes.json();
+
+    // Build a map of gameId -> winner
+    const resultMap = Object.fromEntries(
+      (scoreData.games || []).map(g => [String(g.gameId), g.winner])
+    );
+
+    // 2b. Compute actual tie-breaker = highest scoring game total goals
+    const allFinalGames = (scoreData.games || []).filter(g =>
+      ["FINAL", "OFF"].includes((g.state || "").toUpperCase())
+    );
+
+    let highestGoals = 0;
+allFinalGames.forEach(g => {
+  const total = (g.homeGoals || 0) + (g.awayGoals || 0);
+  if (total > highestGoals) highestGoals = total;
+});
+
+    const actualTieBreaker = allFinalGames.length > 0 ? highestGoals : null;
+
+    // 3. Score each submission and compute tieDiff
+    submissions.forEach(sub => {
+      let correct = 0;
+      for (const [gameId, pick] of Object.entries(sub.picks)) {
+        if (resultMap[gameId] && resultMap[gameId] === pick) {
+          correct++;
+        }
+      }
+      sub.correctCount = correct;
+      sub.tieDiff = actualTieBreaker != null
+        ? Math.abs(sub.tie_breaker - actualTieBreaker)
+        : null;
+    });
+
+    // 3b. Sort submissions: correctCount desc, then tieDiff asc
+    submissions.sort((a, b) => {
+      if (b.correctCount !== a.correctCount) return b.correctCount - a.correctCount;
+      if (a.tieDiff == null || b.tieDiff == null) return 0;
+      return a.tieDiff - b.tieDiff;
+    });
+
+    // 3c. Determine winners (could be >1 if perfect tie)
+    let winners = [];
+if (submissions.length > 0) {
+  const maxCorrect = Math.max(...submissions.map(s => s.correctCount));
+
+  if (maxCorrect > 0) {
+    // Normal case: highest correct_count, then tieDiff
+    const top = submissions[0];
+    winners = submissions.filter(s =>
+      s.correctCount === top.correctCount &&
+      (top.tieDiff === null || s.tieDiff === top.tieDiff)
+    );
+  } else {
+    // Everyone wrong → award by closest tieDiff
+    const minTieDiff = Math.min(...submissions.map(s => s.tieDiff ?? Infinity));
+    winners = submissions.filter(s => s.tieDiff === minTieDiff);
+  }
+}
+
+
+    // 4. Persist results in Supabase
+    // Update all submissions with their scores
+    for (const sub of submissions) {
+      await supabase
+        .from("submissions")
+        .update({
+          correct_count: sub.correctCount,
+          tie_diff: sub.tieDiff,
+          is_winner: winners.some(w => w.id === sub.id)
+        })
+        .eq("id", sub.id);
+    }
+
+    // Example: if you want to mark tx_hash for winners later
+    // (here just a placeholder hash for all winners)
+    if (winners.length > 0) {
+      const winnerIds = winners.map(w => w.id);
+      await supabase
+        .from("submissions")
+        .update({ tx_hash: "0x123abc..." })
+        .in("id", winnerIds);
+    }
+
+    // 5. Return results
+    res.json({
+      success: true,
+      contestId,
+      resultMap,
+      actualTieBreaker,
+      winners,
+      submissions
+    });
+  } catch (err) {
+    console.error("Results error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
