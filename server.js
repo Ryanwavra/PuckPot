@@ -177,8 +177,34 @@ app.get("/api/scores/:date", async (req, res) => {
     const apiUrl = `https://api-web.nhle.com/v1/score/${date}`;
     const response = await fetch(apiUrl);
     const data = await response.json();
-    res.json(data);
+
+    // Map scores to winner format
+    const mappedGames = (data.games ?? []).map(g => {
+      const home = g.homeTeam?.abbrev;
+      const away = g.awayTeam?.abbrev;
+      const homeGoals = g.homeTeam?.score ?? 0;
+      const awayGoals = g.awayTeam?.score ?? 0;
+      const state = g.gameState;
+
+      let winner = null;
+if (state && ["FINAL", "OFF"].includes(state.toUpperCase())) {
+  winner = homeGoals > awayGoals ? home : awayGoals > homeGoals ? away : null;
+}
+
+      return {
+        gameId: g.id,
+        winner,
+        home,
+        away,
+        homeGoals,
+        awayGoals,
+        state,
+      };
+    });
+
+    res.json({ games: mappedGames });
   } catch (err) {
+    console.error("Score fetch error:", err);
     res.status(500).json({ error: "Failed to fetch NHL scores" });
   }
 });
