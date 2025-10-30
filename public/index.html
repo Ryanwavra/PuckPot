@@ -148,5 +148,15 @@
         </a>
       </footer>
     </div>
+    <script src="/scripts/countdown.js"></script>
+    <script>
+  fetch("/api/games")
+    .then(res => res.json())
+    .then(data => {
+      initCountdown(data.lock_time);
+    });
+</script>
+
+
   </body>
 </html>

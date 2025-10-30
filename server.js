@@ -106,7 +106,12 @@ app.get("/api/games", async (req, res) => {
     if (games.length > 0) {
       const earliestEST = new Date(Math.min(...games.map((g) => g.startTimeEST.getTime())));
       const lockEST = new Date(earliestEST.getTime() - 30 * 60 * 1000);
+      //for real Logic: use LockEST
       lockUTC = new Date(lockEST.toISOString());
+
+      //for testing: hardcode 5 minutes from now
+      //lockUTC = new Date(Date.now() + 1 * 60 * 1000);
+
     }
 
     // Upsert contest row
