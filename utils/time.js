@@ -1,14 +1,19 @@
-// utils/time.js
-
 const TZ = "America/New_York";
 
 /**
- * Contest ID = the calendar day of the games in Eastern time
+ * Contest ID = the contest day in Eastern time, with reset at 7:00am
  * @param {Date} [date] - optional Date (defaults to now)
  * @returns {string} YYYY-MM-DD in EST/EDT
  */
 export function getContestId(date = new Date()) {
   const est = new Date(date.toLocaleString("en-US", { timeZone: TZ }));
+  const resetHour = 7;
+
+  // If it's before 7am Eastern, still count as "yesterday's" contest
+  if (est.getHours() < resetHour) {
+    est.setDate(est.getDate() - 1);
+  }
+
   const year = est.getFullYear();
   const month = String(est.getMonth() + 1).padStart(2, "0");
   const day = String(est.getDate()).padStart(2, "0");
