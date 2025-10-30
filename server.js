@@ -1,8 +1,9 @@
+// server.js
 import express from "express";
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
-import { nowEST, getContestWindowEST, toEST } from "./utils/time.js";
+import { nowEST, getContestId, getResetTimeUTC, toEST } from "./utils/time.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -21,46 +22,24 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// --- Helper: always return game-day contestId ---
-function getContestIdEST() {
-  const now = nowEST(); // current EST time
-  // If it's before 7am, use yesterday's date (games belong to previous day)
-  const cutoff = new Date(now);
-  cutoff.setHours(7, 0, 0, 0);
-
-  let contestDate = new Date(now);
-  if (now < cutoff) {
-    contestDate.setDate(contestDate.getDate() - 1);
-  }
-
-  return contestDate.toISOString().split("T")[0];
-}
-
 // ✅ Submit picks
 app.post("/api/submit", async (req, res) => {
-  console.log("Incoming submission body:", req.body);
   const { userId, picks, tieBreaker } = req.body;
   try {
-    const contestId = getContestIdEST();
+    const contestId = getContestId();
+    const now = nowEST();
 
-    // Check contest exists and is open
+    // Ensure contest exists
     const { data: contest } = await supabase
       .from("contests")
       .select("lock_time,status")
       .eq("id", contestId)
-      .single();
+      .maybeSingle();
 
     if (!contest) {
-      console.error("❌ No contest found for ID:", contestId);
       return res.status(404).json({ error: "Contest not found" });
     }
 
-    console.log("🧠 Submitting for contestId:", contestId);
-    console.log("⏰ Contest lock_time (UTC):", contest.lock_time);
-    console.log("📍 Contest status:", contest.status);
-    console.log("🕒 Current time (EST):", nowEST().toISOString());
-
-    const now = nowEST();
     if (contest.status !== "open" || new Date(contest.lock_time) <= now) {
       return res.status(403).json({ error: "Submissions are locked" });
     }
@@ -82,67 +61,59 @@ app.post("/api/submit", async (req, res) => {
       .insert([{ user_id: userId, contest_id: contestId, picks, tie_breaker: tieBreaker }])
       .select();
 
-    if (error) {
-  console.error("❌ Supabase insert error:", error); // log full object
-  return res.status(500).json({ error: error.message });
-}
+    if (error) throw error;
 
-    console.log("✅ Submission saved:", data);
     res.json({ success: true, submission: data[0] });
   } catch (err) {
+    console.error("Submit error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Get today’s games (normalized to EST + contest window)
+// ✅ Get today’s games
 app.get("/api/games", async (req, res) => {
   try {
-    const { start, end } = getContestWindowEST(nowEST());
-    const contestId = getContestIdEST();
+    const contestId = getContestId();
+    const resetUTC = getResetTimeUTC(contestId);
 
-    console.log("Contest window:", start, end, "Contest ID:", contestId);
-
-    // Fetch NHL schedule for contest start date
-    const contestDate = start.toLocaleDateString("en-CA", {
-      timeZone: "America/New_York",
-    });
-    const apiUrl = `https://api-web.nhle.com/v1/schedule/${contestDate}`;
+    // Fetch NHL schedule
+    const apiUrl = `https://api-web.nhle.com/v1/schedule/${contestId}`;
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    console.log("Raw NHL data keys:", Object.keys(data));
+    const allGamesRaw = (data.gameWeek?.flatMap((w) => w.games) ?? []);
 
-    // Normalize and filter games into contest window
-    const games = (data.gameWeek?.flatMap((w) => w.games) || [])
+    const games = allGamesRaw
       .map((g) => {
-        const startTimeEST = toEST(g.startTimeUTC);
+        const startTimeEST = toEST(new Date(g.startTimeUTC));
+        const y = startTimeEST.getFullYear();
+        const m = String(startTimeEST.getMonth() + 1).padStart(2, "0");
+        const d = String(startTimeEST.getDate()).padStart(2, "0");
+        const estDay = `${y}-${m}-${d}`;
         return {
           gameId: g.id,
           homeTeam: g.homeTeam.abbrev,
           awayTeam: g.awayTeam.abbrev,
           startTimeEST,
+          estDay,
           status: g.gameState === "FUT" ? "Upcoming" : g.gameState,
         };
       })
-      .filter((g) => g.startTimeEST >= start && g.startTimeEST <= end);
+      .filter((g) => g.estDay === contestId);
 
-    console.log("Normalized games:", games);
+    // Compute lock time = 30 min before earliest game
+    let lockUTC = null;
+    if (games.length > 0) {
+      const earliestEST = new Date(Math.min(...games.map((g) => g.startTimeEST.getTime())));
+      const lockEST = new Date(earliestEST.getTime() - 30 * 60 * 1000);
+      lockUTC = new Date(lockEST.toISOString());
+    }
 
-    // Ensure contest row exists
-    const resetBase = new Date(`${contestId}T00:00:00`); // midnight of contest day
-    resetBase.setDate(resetBase.getDate() + 1); // move to next day
-    resetBase.setHours(7, 0, 0, 0); // 7:00 AM EST
-    const resetUTC = toEST(resetBase);
-
+    // Upsert contest row
     await supabase.from("contests").upsert([
       {
         id: contestId,
-        lock_time: games.length
-          ? new Date(
-              Math.min(...games.map((g) => g.startTimeEST.getTime())) -
-                30 * 60000
-            ).toISOString()
-          : null,
+        lock_time: lockUTC ? lockUTC.toISOString() : null,
         reset_time: resetUTC.toISOString(),
         status: "open",
       },
@@ -151,64 +122,54 @@ app.get("/api/games", async (req, res) => {
     res.json({
       success: true,
       contestId,
-      contestStart: start,
-      contestEnd: end,
+      lock_time: lockUTC ? lockUTC.toISOString() : null,
+      reset_time: resetUTC.toISOString(),
       games,
     });
   } catch (err) {
-    console.error("API error:", err);
+    console.error("Games error:", err);
     res.status(500).json({ error: "Failed to fetch NHL schedule" });
   }
 });
 
 // ✅ Get submissions for a contest
 app.get("/api/submissions/:contestId", async (req, res) => {
-  const { contestId } = req.params;
   try {
+    const { contestId } = req.params;
     const { data, error } = await supabase
       .from("submissions")
       .select("*")
       .eq("contest_id", contestId);
-
     if (error) throw error;
-    res.json({
-      success: true,
-      count: data.length,
-      pot: data.length, // 1 USDC per submission
-      submissions: data,
-    });
+    res.json({ success: true, count: data.length, pot: data.length, submissions: data });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Get a single user's submission for a contest
+// ✅ Get a single user's submission
 app.get("/api/submission/:contestId", async (req, res) => {
-  const { contestId } = req.params;
-  const { userId } = req.query;
-
   try {
+    const { contestId } = req.params;
+    const { userId } = req.query;
     const { data, error } = await supabase
       .from("submissions")
       .select("*")
       .eq("contest_id", contestId)
       .eq("user_id", userId)
-      .single();
-
+      .maybeSingle();
     if (error && error.code !== "PGRST116") throw error;
-
     res.json({ submission: data || null });
   } catch (err) {
-    console.error("Error fetching submission:", err);
-    res.status(500).json({ error: "Failed to fetch submission" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Get live scores for a date
+// ✅ Get live scores
 app.get("/api/scores/:date", async (req, res) => {
-  const { date } = req.params;
-  const apiUrl = `https://api-web.nhle.com/v1/score/${date}`;
   try {
+    const { date } = req.params;
+    const apiUrl = `https://api-web.nhle.com/v1/score/${date}`;
     const response = await fetch(apiUrl);
     const data = await response.json();
     res.json(data);
@@ -223,7 +184,6 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 // ✅ Serve picks.html
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 app.get("/picks.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "picks.html"));
 });

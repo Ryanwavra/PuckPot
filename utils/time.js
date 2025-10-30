@@ -1,74 +1,70 @@
 // utils/time.js
 
-// Detect if a given date is in US Eastern Daylight Time (DST)
-export function isEasternDST(date = new Date()) {
-  const jan = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  const jul = new Date(Date.UTC(date.getUTCFullYear(), 6, 1));
-  const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
-  return date.getTimezoneOffset() < stdOffset;
+const TZ = "America/New_York";
+
+/**
+ * Contest ID = the calendar day of the games in Eastern time
+ * @param {Date} [date] - optional Date (defaults to now)
+ * @returns {string} YYYY-MM-DD in EST/EDT
+ */
+export function getContestId(date = new Date()) {
+  const est = new Date(date.toLocaleString("en-US", { timeZone: TZ }));
+  const year = est.getFullYear();
+  const month = String(est.getMonth() + 1).padStart(2, "0");
+  const day = String(est.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-// ----------------- UTC HELPERS -----------------
-
-// Get contest window in UTC
-export function getContestWindowUTC(base = new Date()) {
-  const resetHourUTC = isEasternDST(base) ? 11 : 12; // 11 UTC in summer, 12 UTC in winter
-
-  const start = new Date(Date.UTC(
-    base.getUTCFullYear(),
-    base.getUTCMonth(),
-    base.getUTCDate(),
-    resetHourUTC, 0, 0, 0
-  ));
-
-  if (base < start) start.setUTCDate(start.getUTCDate() - 1);
-
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-  end.setMilliseconds(-1);
-
-  return { start, end };
-}
-
-// Contest ID (YYYY-MM-DD based on UTC reset)
-export function contestIdUTC(base = new Date()) {
-  const { start } = getContestWindowUTC(base);
-  return start.toISOString().slice(0, 10);
-}
-
-// ----------------- EST HELPERS -----------------
-
-// Current time in EST as a Date
-export function nowEST() {
-  return new Date(
-    new Date().toLocaleString("en-US", { timeZone: "America/New_York" })
+/**
+ * Lock time = contest day 23:00 Eastern → UTC
+ * @param {string} gameDateStr - "YYYY-MM-DD"
+ * @returns {Date} UTC Date object
+ */
+export function getLockTimeUTC(gameDateStr) {
+  const local = new Date(
+    new Date(`${gameDateStr}T23:00:00`).toLocaleString("en-US", { timeZone: TZ })
   );
+  return new Date(local.toISOString()); // UTC
 }
 
-// Contest window in EST (converted from UTC window)
-export function getContestWindowEST(base = new Date()) {
-  const { start, end } = getContestWindowUTC(base);
-  return {
-    start: new Date(
-      start.toLocaleString("en-US", { timeZone: "America/New_York" })
-    ),
-    end: new Date(
-      end.toLocaleString("en-US", { timeZone: "America/New_York" })
-    )
-  };
-}
-
-// Contest ID based on EST reset
-export function contestIdEST(base = new Date()) {
-  const estDate = new Date(
-    base.toLocaleString("en-US", { timeZone: "America/New_York" })
+/**
+ * Reset time = next day 07:00 Eastern → UTC
+ * @param {string} gameDateStr - "YYYY-MM-DD"
+ * @returns {Date} UTC Date object
+ */
+export function getResetTimeUTC(gameDateStr) {
+  // Start from midnight Eastern of contest day
+  const base = new Date(
+    new Date(`${gameDateStr}T00:00:00`).toLocaleString("en-US", { timeZone: TZ })
   );
-  return estDate.toISOString().slice(0, 10);
+  // Move to next day
+  base.setDate(base.getDate() + 1);
+
+  // Build 07:00 Eastern on that next day
+  const resetLocal = new Date(
+    new Date(
+      `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(
+        base.getDate()
+      ).padStart(2, "0")}T07:00:00`
+    ).toLocaleString("en-US", { timeZone: TZ })
+  );
+
+  return new Date(resetLocal.toISOString()); // UTC
 }
 
-// Convert any Date → EST Date
+/**
+ * Convert UTC → Eastern
+ * @param {Date} date - UTC Date
+ * @returns {Date} Eastern Date
+ */
 export function toEST(date) {
-  return new Date(
-    new Date(date).toLocaleString("en-US", { timeZone: "America/New_York" })
-  );
+  return new Date(date.toLocaleString("en-US", { timeZone: TZ }));
+}
+
+/**
+ * Current time in Eastern
+ * @returns {Date}
+ */
+export function nowEST() {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
 }
