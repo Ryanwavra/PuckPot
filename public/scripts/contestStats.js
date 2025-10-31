@@ -1,20 +1,20 @@
-// public/js/contestStats.js
 async function loadContestStats(contestId) {
   try {
     const res = await fetch(`/api/contest-stats/${contestId}`);
     const data = await res.json();
 
     if (data?.success) {
-      const playersEl = document.querySelector(".total-players");
-      const potEl = document.querySelector(".total-pot");
+      const playersEl = document.getElementById("player-count");
+      const potEl = document.getElementById("total-amount");
 
-      if (playersEl) playersEl.textContent = `Players Entered: ${data.players}`;
+      // Only update the numbers, not the labels
+      if (playersEl) playersEl.textContent = data.players;
 
       const potDisplay = Number(data.pot).toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
-      if (potEl) potEl.textContent = `Current Pot: $${potDisplay}`;
+      if (potEl) potEl.textContent = `$${potDisplay}`;
     }
   } catch (err) {
     console.error("Error loading contest stats", err);
@@ -23,7 +23,7 @@ async function loadContestStats(contestId) {
 
 function initContestStats(contestId) {
   loadContestStats(contestId);
-  const POLL_MS = 30000; // optional: refresh every 30s
+  const POLL_MS = 30000; // refresh every 30s
   setInterval(() => loadContestStats(contestId), POLL_MS);
 }
 

@@ -150,6 +150,7 @@ async function hydrateUserPicks(userId, contestId) {
     const btn = document.getElementById("submit-picks");
     btn.disabled = true;
     btn.innerText = "Picks submitted";
+    btn.classList.add("locked-submitted"); // ✅ gray style
 
     if (tie_breaker !== undefined && tie_breaker !== null) {
       const tbInput = document.getElementById("tieBreaker");
@@ -162,50 +163,47 @@ async function hydrateUserPicks(userId, contestId) {
 }
 
 async function applyGameResults(userId, contestId) {
-  console.log("applyGameResults running for contest:", contestId); // ✅ top-level log
+  console.log("applyGameResults running for contest:", contestId);
   try {
     const res = await fetch(`/api/scores/${contestId}`);
     const data = await res.json();
     const results = data.games || [];
 
-    
-console.log("Score API response:", results); 
+    console.log("Score API response:", results);
 
     const resultMap = new Map(results.map(game => [String(game.gameId), game.winner]));
 
     Object.entries(userPicks).forEach(([gameId, team]) => {
-  const card = document.querySelector(`[data-game-id="${gameId}"]`);
-  if (!card) {
-    console.warn("No card found for gameId:", gameId);
-    return;
-  }
+      const card = document.querySelector(`[data-game-id="${gameId}"]`);
+      if (!card) {
+        console.warn("No card found for gameId:", gameId);
+        return;
+      }
 
-  const winner = resultMap.get(gameId);
-  if (!winner) {
-    console.warn("No winner found for gameId:", gameId);
-    return;
-  }
+      const winner = resultMap.get(gameId);
+      if (!winner) {
+        console.warn("No winner found for gameId:", gameId);
+        return;
+      }
 
-  console.log("Game:", gameId, "Pick:", team, "Winner:", winner);
+      console.log("Game:", gameId, "Pick:", team, "Winner:", winner);
 
-  const awayName = card.querySelector(".away-symbol h3").textContent;
-  const homeName = card.querySelector(".home-symbol h3").textContent;
+      const awayName = card.querySelector(".away-symbol h3").textContent;
+      const homeName = card.querySelector(".home-symbol h3").textContent;
 
-  console.log("Away:", awayName, "Home:", homeName);
+      const targetDiv =
+        team === awayName
+          ? card.querySelector(".away-team")
+          : card.querySelector(".home-team");
 
-  const targetDiv =
-    team === awayName
-      ? card.querySelector(".away-team")
-      : card.querySelector(".home-team");
+      if (!targetDiv) {
+        console.warn("No target div found for team:", team);
+        return;
+      }
 
-  if (!targetDiv) {
-    console.warn("No target div found for team:", team);
-    return;
-  }
-
-  targetDiv.classList.remove("selected");
-  targetDiv.classList.add(team === winner ? "correct-pick" : "wrong-pick");
-});
+      targetDiv.classList.remove("selected");
+      targetDiv.classList.add(team === winner ? "correct-pick" : "wrong-pick");
+    });
   } catch (err) {
     console.error("Error applying game results:", err);
   }
@@ -239,8 +237,10 @@ document.getElementById("submit-picks").addEventListener("click", async () => {
     const result = await res.json();
     if (result.success) {
       alert("✅ Picks submitted successfully!");
-      document.getElementById("submit-picks").disabled = true;
-      document.getElementById("submit-picks").innerText = "Picks submitted";
+      const btn = document.getElementById("submit-picks"); // ✅ define btn
+      btn.disabled = true;
+      btn.innerText = "Picks submitted";
+      btn.classList.add("locked-submitted"); // ✅ gray style
     } else {
       alert("❌ Submission failed: " + result.error);
     }
@@ -251,6 +251,7 @@ document.getElementById("submit-picks").addEventListener("click", async () => {
 });
 
 // Initial load
+// Initial load
 (async () => {
   try {
     const cid = await loadGames();
@@ -260,13 +261,13 @@ document.getElementById("submit-picks").addEventListener("click", async () => {
       console.log("Calling applyGameResults with cid:", cid);
 
       await applyGameResults("demo-user", cid);
+
       // ✅ Kick off contest stats updater here
       if (window.initContestStats) {
         window.initContestStats(cid);
       }
-
     }
   } catch (err) {
     console.error("Error during initial hydration:", err);
   }
-})();
+})(); // 👈 closes the async IIFE properly

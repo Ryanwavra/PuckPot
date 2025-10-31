@@ -14,22 +14,23 @@ function initCountdown(lockTimeStr, resetTimeStr) {
     const diff = lockTime - now;
 
     if (diff <= 0) {
-  hourEl.textContent = "0";
-  minEl.textContent = "00";
-  secEl.textContent = "00";
+      hourEl.textContent = "0";
+      minEl.textContent = "00";
+      secEl.textContent = "00";
 
-  if (submitBtn) {
-    submitBtn.disabled = true;
+      if (submitBtn) {
+        submitBtn.disabled = true;
 
-    // Only overwrite if not already "Picks submitted"
-    if (submitBtn.innerText !== "Picks submitted") {
-      submitBtn.innerText = "Picks are locked";
+        // Only apply timeout lock if not already submitted
+        if (submitBtn.innerText !== "Picks submitted") {
+          submitBtn.innerText = "Picks are locked";
+          submitBtn.classList.add("locked-timeout"); // 🔴 turn red
+        }
+      }
+
+      clearInterval(timer);
+      return;
     }
-  }
-
-  clearInterval(timer); // ✅ inside the block
-  return;
-}
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
@@ -41,7 +42,7 @@ function initCountdown(lockTimeStr, resetTimeStr) {
   }
 
   updateCountdown();
-  timer = setInterval(updateCountdown, 1000); // ✅ assign to outer let
+  timer = setInterval(updateCountdown, 1000);
 
   // Optional: auto-refresh at reset
   if (resetTime) {

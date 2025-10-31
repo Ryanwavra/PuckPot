@@ -2,6 +2,8 @@
     display: flex;
     width: 100%;
     justify-content: center;
+    font-weight: bold;
+    font-size: 1.3em
 }
 
 .pot {
@@ -11,6 +13,48 @@
     border: 1px solid white;
     padding: 2vh;
     gap: 1vh;
+}
+
+#player-count, #total-amount {
+  font-weight: bold;
+}
+
+.button {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+button {
+    margin-top: 0.8vh;
+    width: 95vw;
+    border-radius: 30px;
+    border-color: #0074D9;
+    background-color: #0074D9;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+    padding: 0.6em 1.4em;
+}
+
+button.locked-timeout {
+  background-color: #DC3545; /* red */
+  border-color: #DC3545;
+  cursor: not-allowed;
+}
+
+button.locked-submitted {
+  background-color: #6c757d; /* gray */
+  border-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* ===============================
+  tiebreaker guess
+================================ */
+
+.tie-guess-content {
+  font-size: 0.8rem;
 }
 
 .tie-guess {
@@ -23,17 +67,7 @@
     border: 1px solid white;
 }
 
-.button {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-}
 
-button {
-    width: 100%;
-    height: 4vh;
-    border-radius: 30px;
-}
 
 /* ===============================
   Game cards
@@ -60,6 +94,7 @@ button {
     display: flex;
     justify-content: space-around;
     align-items: center;
+    padding: 5px 0px;
 }
 
 .away-team, .home-team {
@@ -99,10 +134,19 @@ button {
 
 .away-team.selected,
 .home-team.selected {
-  border: 2px solid black;
-  background-color: #e8f5e9;
+  border: 2px solid #0074D9;
+  background-color: #0074D9;
+  border-radius: 5px;
 }
 
-.selected { background-color: white; color: black; }
-.correct-pick { background-color: green; color: white; }
-.wrong-pick { background-color: red; color: white; }
+.selected { background-color: #0074D9; border-color: #0074D9; border-radius: 5px; color: white; }
+.correct-pick { background-color: #28A745; border-color: #28A745; border-radius: 5px; color: white; }
+.wrong-pick { background-color: #DC3545; border-color: #DC3545; border-radius: 5px; color: white; }
+
+/* ===============================
+  footer
+================================ */
+
+.picks svg, .picks-word {
+  color: #0074D9;
+}

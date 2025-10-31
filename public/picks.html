@@ -27,7 +27,7 @@
         <!--Countdown-->
         <section class="countdown-section">
           <div class="countdown">
-            <div class="heading">PICKS LOCK IN</div>
+            <div class="heading">PICKS LOCK IN:</div>
             <div class="countdown-content">
               <div class="time-block">
                 <div id="hourCount">0</div>
@@ -48,8 +48,8 @@
         <!--Pot Info-->
         <section>
             <div class="pot">
-                <div class="total-players">Players Entered: 0</div>
-                <div class="total-pot">Current Pot: $0.00</div>
+                <div class="total-players">Players Entered: <span id="player-count">0</span></div>
+                <div class="total-pot">Current Pot: <span id="total-amount">$0.00</span></div>
             </div>
         </section>
 
@@ -82,8 +82,8 @@
         <!--Tie Breaker-->
         <section>
             <div class="tie-guess">
-                <div>Total goals in highest scoring game of the day (tiebreaker):</div>
-                <input type="number" id="tieBreaker" placeholder="Enter your guess" min="0" required>
+                <div class="tie-guess-content">Total goals in highest scoring game of the day (tiebreaker):</div>
+                <input type="number" id="tieBreaker" placeholder="Enter whole number: " min="0" required>
             </div>
         </section>
 
