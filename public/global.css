@@ -31,16 +31,29 @@ main {
    Header Section
 ================================ */
 .header {
-    width: 100%;
-    display: flex;
-    padding: 0 2vw;
-    border-bottom: 1px solid darkslategray;
-    padding-bottom: 2vh;
+  width: 100%;
+  display: flex;
+  align-items: center;        /* centers logo + pfp vertically */
+  justify-content: flex-start;/* keeps logo on the left */
+  padding: 0 2vw;
+  border-bottom: 1px solid white;
+  height: 60px;
+  box-sizing: border-box;     /* ensures padding stays inside height */
 }
 
 .header .pfp {
-    margin-left: auto;
+  margin-left: auto;          /* pushes profile pic to the far right */
 }
+
+.logo img {
+  display: block;
+  max-height: 20px;           /* scale logo to fit header */
+  height: auto;
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
 
 /* ===============================
    Countdown Section

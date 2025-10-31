@@ -14,7 +14,7 @@
         <!--Header-->
         <section class="header-section">
           <div class="header">
-            <div class="logo"><img src="#" /></div>
+            <div class="logo"><img src="./images/puckPotlogo.png" /></div>
             <div class="pfp"><img src="#" /></div>
           </div>
         </section>
@@ -149,30 +149,24 @@
       </footer>
     </div>
     <script src="/scripts/countdown.js"></script>
-    <script>
+<script src="/scripts/contestStats.js"></script>
+<script>
   fetch("/api/games")
     .then(res => res.json())
     .then(data => {
-      initCountdown(data.lock_time);
-    });
-</script>
-<script src="/scripts/contestStats.js"></script>
-<script>
-  // Compute contestId client-side (EST date in YYYY-MM-DD format)
-  function getContestIdClient() {
-    const now = new Date();
-    const est = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/New_York" })
-    );
-    const y = est.getFullYear();
-    const m = String(est.getMonth() + 1).padStart(2, "0");
-    const d = String(est.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
+      console.log("Games API response (index):", data);
 
-  const cid = getContestIdClient();
-  console.log("Using contestId:", cid); // debug
-  window.initContestStats(cid);
+      // Start countdown
+      if (data.lock_time) {
+        initCountdown(data.lock_time, data.reset_time);
+      }
+
+      // Start contest stats updater
+      if (data.contestId && window.initContestStats) {
+        window.initContestStats(data.contestId);
+      }
+    })
+    .catch(err => console.error("Error loading contest data:", err));
 </script>
 
 
