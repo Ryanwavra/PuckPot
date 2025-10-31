@@ -44,7 +44,7 @@
         <section class="pot-section">
           <div class="pot-info">
             <div class="title">$1 ENTRY FEE</div>
-            <div class="total-pot">$0 Total Pot</div>
+            <div class="total-pot">$0.00 Total Pot</div>
             <div class="total-players">0 players already joined</div>
             <div class="description">
               Join the pot and guess which NHL teams will take the win home
@@ -155,6 +155,24 @@
     .then(data => {
       initCountdown(data.lock_time);
     });
+</script>
+<script src="/scripts/contestStats.js"></script>
+<script>
+  // Compute contestId client-side (EST date in YYYY-MM-DD format)
+  function getContestIdClient() {
+    const now = new Date();
+    const est = new Date(
+      now.toLocaleString("en-US", { timeZone: "America/New_York" })
+    );
+    const y = est.getFullYear();
+    const m = String(est.getMonth() + 1).padStart(2, "0");
+    const d = String(est.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  const cid = getContestIdClient();
+  console.log("Using contestId:", cid); // debug
+  window.initContestStats(cid);
 </script>
 
 

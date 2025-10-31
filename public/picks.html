@@ -49,7 +49,7 @@
         <section>
             <div class="pot">
                 <div class="total-players">Players Entered: 0</div>
-                <div class="current-pot">Current Pot: 0</div>
+                <div class="total-pot">Current Pot: $0.00</div>
             </div>
         </section>
 
@@ -179,15 +179,33 @@
         </a>
         </footer>
     </div>
-    <script src="scripts/picks.js"></script>
-    <script src="/scripts/countdown.js"></script>
-    <script>
+    <script src="/scripts/picks.js"></script>
+<script src="/scripts/countdown.js"></script>
+<script>
   fetch("/api/games")
     .then(res => res.json())
     .then(data => {
       initCountdown(data.lock_time);
     });
 </script>
+<script src="/scripts/contestStats.js"></script>
+<script>
+  function getContestIdClient() {
+    const now = new Date();
+    const est = new Date(
+      now.toLocaleString("en-US", { timeZone: "America/New_York" })
+    );
+    const y = est.getFullYear();
+    const m = String(est.getMonth() + 1).padStart(2, "0");
+    const d = String(est.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  const contestId = getContestIdClient();
+  console.log("Using contestId:", contestId);
+  window.initContestStats(contestId);
+</script>
+
 
 
 

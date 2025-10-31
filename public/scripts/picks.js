@@ -260,6 +260,11 @@ document.getElementById("submit-picks").addEventListener("click", async () => {
       console.log("Calling applyGameResults with cid:", cid);
 
       await applyGameResults("demo-user", cid);
+      // ✅ Kick off contest stats updater here
+      if (window.initContestStats) {
+        window.initContestStats(cid);
+      }
+
     }
   } catch (err) {
     console.error("Error during initial hydration:", err);

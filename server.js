@@ -5,11 +5,12 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
-import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import { nowEST, getContestId, getResetTimeUTC, toEST } from "./utils/time.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import cron from "node-cron";
+import { DateTime } from "luxon";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -154,6 +155,31 @@ app.get("/api/submissions/:contestId", async (req, res) => {
   }
 });
 
+// ✅ Contest stats: players entered + net pot (minus 10%)
+app.get("/api/contest-stats/:contestId", async (req, res) => {
+  try {
+    const { contestId } = req.params;
+
+    // Count submissions for this contest
+    const { data: subs, error } = await supabase
+      .from("submissions")
+      .select("id")
+      .eq("contest_id", contestId);
+      // When you add statuses, change to: .eq("status", "active")
+
+    if (error) throw error;
+
+    const players = subs.length;
+    // Each entry = 1 USDC. Pot = entries * 0.9 (10% fee)
+    const pot = players * 1 * 0.9;
+
+    res.json({ success: true, players, pot });
+  } catch (err) {
+    console.error("contest-stats error:", err);
+    res.status(500).json({ success: false, error: String(err) });
+  }
+});
+
 // ✅ Get a single user's submission
 app.get("/api/submission/:contestId", async (req, res) => {
   try {
@@ -211,84 +237,98 @@ if (state && ["FINAL", "OFF"].includes(state.toUpperCase())) {
   }
 });
 
-// ✅ Determine results for a contest
 app.get("/api/results/:contestId", async (req, res) => {
   try {
     const { contestId } = req.params;
 
-    // 1. Fetch submissions for this contest
+    // A) Load contest to check finalization
+    const { data: contestRows, error: contestErr } = await supabase
+      .from("contests")
+      .select("*")
+      .eq("id", contestId)
+      .limit(1);
+    if (contestErr) throw contestErr;
+    const contest = contestRows?.[0];
+    if (!contest) return res.status(404).json({ error: "Contest not found" });
+
+    // If already finalized, return snapshot
+    if (contest.finalized_at) {
+      return res.json({
+        success: true,
+        contestId,
+        message: "Contest already finalized",
+        finalized_at: contest.finalized_at,
+        finalize_reason: contest.finalize_reason
+      });
+    }
+
+    // 1. Fetch submissions
     const { data: submissions, error: subError } = await supabase
       .from("submissions")
       .select("*")
       .eq("contest_id", contestId);
-
     if (subError) throw subError;
 
-    // 2. Fetch scores for this contest date
+    // 2. Fetch scores
     const scoreRes = await fetch(`http://localhost:${PORT}/api/scores/${contestId}`);
     const scoreData = await scoreRes.json();
 
-    // Build a map of gameId -> winner
+    // Only finished games count
+    const finishedStates = new Set(["FINAL", "OFF"]);
+    const finishedGames = (scoreData.games || []).filter(
+      g => finishedStates.has((g.state || "").toUpperCase())
+    );
+
+    // Map gameId -> winner (finished only)
     const resultMap = Object.fromEntries(
-      (scoreData.games || []).map(g => [String(g.gameId), g.winner])
+      finishedGames.map(g => [String(g.gameId), g.winner])
     );
 
-    // 2b. Compute actual tie-breaker = highest scoring game total goals
-    const allFinalGames = (scoreData.games || []).filter(g =>
-      ["FINAL", "OFF"].includes((g.state || "").toUpperCase())
-    );
-
+    // Highest scoring finished game total goals
     let highestGoals = 0;
-allFinalGames.forEach(g => {
-  const total = (g.homeGoals || 0) + (g.awayGoals || 0);
-  if (total > highestGoals) highestGoals = total;
-});
+    for (const g of finishedGames) {
+      const total = (g.homeGoals || 0) + (g.awayGoals || 0);
+      if (total > highestGoals) highestGoals = total;
+    }
+    const actualTieBreaker = finishedGames.length > 0 ? highestGoals : null;
 
-    const actualTieBreaker = allFinalGames.length > 0 ? highestGoals : null;
-
-    // 3. Score each submission and compute tieDiff
+    // 3. Score and tieDiff
     submissions.forEach(sub => {
       let correct = 0;
-      for (const [gameId, pick] of Object.entries(sub.picks)) {
-        if (resultMap[gameId] && resultMap[gameId] === pick) {
-          correct++;
-        }
+      for (const [gameId, pick] of Object.entries(sub.picks || {})) {
+        if (resultMap[gameId] && resultMap[gameId] === pick) correct++;
       }
       sub.correctCount = correct;
       sub.tieDiff = actualTieBreaker != null
-        ? Math.abs(sub.tie_breaker - actualTieBreaker)
+        ? Math.abs(Number(sub.tie_breaker) - actualTieBreaker)
         : null;
     });
 
-    // 3b. Sort submissions: correctCount desc, then tieDiff asc
+    // 3b. Sort: correct desc, tieDiff asc (nulls last)
     submissions.sort((a, b) => {
       if (b.correctCount !== a.correctCount) return b.correctCount - a.correctCount;
-      if (a.tieDiff == null || b.tieDiff == null) return 0;
-      return a.tieDiff - b.tieDiff;
+      const aTD = a.tieDiff ?? Infinity;
+      const bTD = b.tieDiff ?? Infinity;
+      return aTD - bTD;
     });
 
-    // 3c. Determine winners (could be >1 if perfect tie)
+    // 3c. Winners, with everyone-wrong fallback
     let winners = [];
-if (submissions.length > 0) {
-  const maxCorrect = Math.max(...submissions.map(s => s.correctCount));
+    if (submissions.length > 0) {
+      const maxCorrect = Math.max(...submissions.map(s => s.correctCount));
+      if (maxCorrect > 0) {
+        const top = submissions[0];
+        winners = submissions.filter(
+          s => s.correctCount === top.correctCount &&
+               (top.tieDiff === null || s.tieDiff === top.tieDiff)
+        );
+      } else {
+        const minTieDiff = Math.min(...submissions.map(s => s.tieDiff ?? Infinity));
+        winners = submissions.filter(s => s.tieDiff === minTieDiff);
+      }
+    }
 
-  if (maxCorrect > 0) {
-    // Normal case: highest correct_count, then tieDiff
-    const top = submissions[0];
-    winners = submissions.filter(s =>
-      s.correctCount === top.correctCount &&
-      (top.tieDiff === null || s.tieDiff === top.tieDiff)
-    );
-  } else {
-    // Everyone wrong → award by closest tieDiff
-    const minTieDiff = Math.min(...submissions.map(s => s.tieDiff ?? Infinity));
-    winners = submissions.filter(s => s.tieDiff === minTieDiff);
-  }
-}
-
-
-    // 4. Persist results in Supabase
-    // Update all submissions with their scores
+    // 4. Persist per submission
     for (const sub of submissions) {
       await supabase
         .from("submissions")
@@ -300,22 +340,27 @@ if (submissions.length > 0) {
         .eq("id", sub.id);
     }
 
-    // Example: if you want to mark tx_hash for winners later
-    // (here just a placeholder hash for all winners)
-    if (winners.length > 0) {
-      const winnerIds = winners.map(w => w.id);
-      await supabase
-        .from("submissions")
-        .update({ tx_hash: "0x123abc..." })
-        .in("id", winnerIds);
-    }
+    // 5. Finalize contest snapshot
+    const allGames = scoreData.games || [];
+    const allFinished = allGames.length > 0 &&
+      allGames.every(g => finishedStates.has((g.state || "").toUpperCase()));
 
-    // 5. Return results
+    const finalizeReason = allFinished ? "ALL_FINAL" : "RESET_7AM";
+    await supabase
+      .from("contests")
+      .update({
+        finalized_at: new Date().toISOString(),
+        finalize_reason: finalizeReason
+      })
+      .eq("id", contestId);
+
+    // 6. Return
     res.json({
       success: true,
       contestId,
       resultMap,
       actualTieBreaker,
+      finalize_reason: finalizeReason,
       winners,
       submissions
     });
@@ -336,3 +381,58 @@ app.get("/picks.html", (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
+// Example: finalize yesterday's contest at 7:00 AM Eastern
+cron.schedule("0 7 * * *", async () => {
+  try {
+    const dt = DateTime.now().setZone("America/New_York").minus({ days: 1 });
+    const contestId = dt.toFormat("yyyy-LL-dd");
+
+    const res = await fetch(`http://localhost:${PORT}/api/results/${contestId}`);
+    const data = await res.json();
+    console.log("Finalized contest:", contestId, data.finalize_reason);
+  } catch (err) {
+    console.error("Cron finalize error:", err);
+  }
+});
+
+// Every 10 minutes: check if all games are final, finalize early if possible
+cron.schedule("*/10 * * * *", async () => {
+  try {
+    const dt = DateTime.now().setZone("America/New_York").minus({ days: 1 });
+    const contestId = dt.toFormat("yyyy-LL-dd");
+
+    // 1. Load contest row
+    const { data: contestRows, error: contestErr } = await supabase
+      .from("contests")
+      .select("*")
+      .eq("id", contestId)
+      .limit(1);
+    if (contestErr) throw contestErr;
+    const contest = contestRows?.[0];
+    if (!contest) return; // no contest for yesterday
+
+    // Skip if already finalized
+    if (contest.finalized_at) return;
+
+    // 2. Fetch scores for yesterday
+    const scoreRes = await fetch(`http://localhost:${PORT}/api/scores/${contestId}`);
+    const scoreData = await scoreRes.json();
+
+    const finishedStates = new Set(["FINAL", "OFF"]);
+    const allGames = scoreData.games || [];
+
+    // 3. Check if all games are finished
+    const allFinished = allGames.length > 0 &&
+      allGames.every(g => finishedStates.has((g.state || "").toUpperCase()));
+
+    if (allFinished) {
+      // 4. Finalize early
+      const res = await fetch(`http://localhost:${PORT}/api/results/${contestId}`);
+      const data = await res.json();
+      console.log("Early finalization triggered:", contestId, data.finalize_reason);
+    }
+  } catch (err) {
+    console.error("10‑minute poller error:", err);
+  }
+});
