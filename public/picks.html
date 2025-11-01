@@ -92,6 +92,20 @@
             </div>
         </section>
 
+        <div id="wallet-status">Checking wallet…</div>
+<script>
+  async function init() {
+    const el = document.getElementById("wallet-status");
+    if (window.MiniKit) {
+      const address = await window.MiniKit.ethereum.getAddress();
+      el.textContent = "Connected wallet: " + address;
+    } else {
+      el.textContent = "MiniKit not available. Open in Base app.";
+    }
+  }
+  init();
+</script>
+
         
 
 
