@@ -83,9 +83,14 @@ async function connectWallet() {
     showConnected(address);
     localStorage.setItem("connectedAddress", address);
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    if (err.code === 4001) {
+      // User rejected request — just ignore or show a subtle message
+      console.log("Wallet connection request was rejected by the user.");
+    } else {
+      alert(`Error: ${err.message}`);
+    }
   }
-}
+} 
 
 async function checkConnection() {
   const provider = window.ethereum;
@@ -93,13 +98,12 @@ async function checkConnection() {
 
   try {
     const accounts = await provider.request({ method: "eth_accounts" });
-    if (accounts.length > 0) {
-      const address = accounts[0];
-      showConnected(address);
-      localStorage.setItem("connectedAddress", address);
+    const saved = localStorage.getItem("connectedAddress");
+
+    if (accounts.length > 0 && saved) {
+      showConnected(accounts[0]);
     } else {
       showDisconnected();
-      localStorage.removeItem("connectedAddress");
     }
   } catch (err) {
     console.error("Error checking connection:", err);
