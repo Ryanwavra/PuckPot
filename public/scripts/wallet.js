@@ -1,11 +1,11 @@
 // public/scripts/wallet.js
-import { MiniKit } from "@farcaster/mini-kit";
-
-const miniKit = new MiniKit();
 
 export async function getUserAddress() {
   try {
-    const address = await miniKit.ethereum.getAddress();
+    if (!window.MiniKit) {
+      throw new Error("MiniKit not available. Open in Base app.");
+    }
+    const address = await window.MiniKit.ethereum.getAddress();
     return address;
   } catch (err) {
     console.error("MiniKit not available. Open in Base app.", err);
@@ -15,7 +15,10 @@ export async function getUserAddress() {
 
 export async function signMessage(message) {
   try {
-    return await miniKit.ethereum.signMessage(message);
+    if (!window.MiniKit) {
+      throw new Error("MiniKit not available. Open in Base app.");
+    }
+    return await window.MiniKit.ethereum.signMessage(message);
   } catch (err) {
     console.error("Failed to sign message:", err);
     return null;
