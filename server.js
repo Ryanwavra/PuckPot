@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static("public", {dotfiles: "allow"}));
 
 // Supabase client
 const supabase = createClient(
