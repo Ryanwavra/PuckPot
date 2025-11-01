@@ -8,23 +8,48 @@ const disconnectBtn = document.getElementById("disconnect");
 // -----------------------------
 const NETWORKS = {
   baseMainnet: {
-    chainId: "0x2105", // 8453
-    chainName: "Base Mainnet",
-    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-    rpcUrls: ["https://mainnet.base.org"],
-    blockExplorerUrls: ["https://basescan.org"],
+    chainId: 8453,
+    rpcUrl: "https://mainnet.base.org",
   },
   baseSepolia: {
-    chainId: "0x14A74", // 84532
-    chainName: "Base Sepolia",
-    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-    rpcUrls: ["https://sepolia.base.org"],
-    blockExplorerUrls: ["https://sepolia.basescan.org"],
+    chainId: 84532,
+    rpcUrl: "https://sepolia.base.org",
   },
 };
 
 // 👉 Toggle this between "baseSepolia" (dev/test) and "baseMainnet" (production)
 const ACTIVE_NETWORK = "baseSepolia";
+
+// -----------------------------
+// 🔧 Web3Modal setup
+// -----------------------------
+const providerOptions = {
+  walletconnect: {
+    package: window.WalletConnectProvider,
+    options: {
+      rpc: {
+        [NETWORKS.baseMainnet.chainId]: NETWORKS.baseMainnet.rpcUrl,
+        [NETWORKS.baseSepolia.chainId]: NETWORKS.baseSepolia.rpcUrl,
+      },
+    },
+  },
+  coinbasewallet: {
+    package: window.CoinbaseWalletSDK,
+    options: {
+      appName: "PuckPot",
+      rpc: NETWORKS[ACTIVE_NETWORK].rpcUrl,
+      chainId: NETWORKS[ACTIVE_NETWORK].chainId,
+    },
+  },
+};
+
+const web3Modal = new window.Web3Modal.default({
+  cacheProvider: false,
+  providerOptions,
+});
+
+let web3Provider; // ethers.js provider
+let web3Instance; // raw provider instance
 
 // -----------------------------
 // 🔧 Helpers
@@ -46,94 +71,52 @@ function showDisconnected() {
   walletMenu.classList.add("hidden");
 }
 
-async function ensureCorrectNetwork(provider) {
-  const target = NETWORKS[ACTIVE_NETWORK];
-  try {
-    await provider.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: target.chainId }],
-    });
-  } catch (err) {
-    if (err?.code === 4902) {
-      await provider.request({
-        method: "wallet_addEthereumChain",
-        params: [target],
-      });
-    } else {
-      throw err;
-    }
-  }
-}
-
 // -----------------------------
 // 🔧 Core Functions
 // -----------------------------
 async function connectWallet() {
-  const provider = window.ethereum;
-  if (!provider) {
-    alert("No wallet found. Install MetaMask, Coinbase Wallet, or Phantom.");
-    return;
-  }
-
   try {
-    const accounts = await provider.request({ method: "eth_requestAccounts" });
-    const address = accounts[0];
-    await ensureCorrectNetwork(provider);
+    web3Instance = await web3Modal.connect(); // 🔥 Pops up wallet selector
+    web3Provider = new ethers.providers.Web3Provider(web3Instance);
+    const signer = web3Provider.getSigner();
+    const address = await signer.getAddress();
 
     showConnected(address);
     localStorage.setItem("connectedAddress", address);
+
+    // Listen for account/network changes
+    web3Instance.on("accountsChanged", (accounts) => {
+      if (accounts.length > 0) {
+        showConnected(accounts[0]);
+        localStorage.setItem("connectedAddress", accounts[0]);
+      } else {
+        disconnectWallet();
+      }
+    });
+
+    web3Instance.on("chainChanged", () => {
+      window.location.reload();
+    });
   } catch (err) {
     if (err.code === 4001) {
-      // User rejected request — just ignore or show a subtle message
-      console.log("Wallet connection request was rejected by the user.");
+      console.log("User rejected connection.");
     } else {
-      alert(`Error: ${err.message}`);
+      console.error("Connection error:", err);
     }
-  }
-} 
-
-async function checkConnection() {
-  const provider = window.ethereum;
-  if (!provider) return;
-
-  try {
-    const accounts = await provider.request({ method: "eth_accounts" });
-    const saved = localStorage.getItem("connectedAddress");
-
-    if (accounts.length > 0 && saved) {
-      showConnected(accounts[0]);
-    } else {
-      showDisconnected();
-    }
-  } catch (err) {
-    console.error("Error checking connection:", err);
   }
 }
 
 function disconnectWallet() {
   localStorage.removeItem("connectedAddress");
   showDisconnected();
+  if (web3Modal) {
+    web3Modal.clearCachedProvider();
+  }
 }
 
 // -----------------------------
 // 🔧 Event listeners
 // -----------------------------
-if (window.ethereum) {
-  window.ethereum.on("accountsChanged", (accounts) => {
-    if (accounts.length > 0) {
-      showConnected(accounts[0]);
-      localStorage.setItem("connectedAddress", accounts[0]);
-    } else {
-      disconnectWallet();
-    }
-  });
-
-  window.ethereum.on("chainChanged", () => {
-    window.location.reload();
-  });
-}
-
-// Main button: connect or toggle dropdown
 connectBtn?.addEventListener("click", () => {
   const address = localStorage.getItem("connectedAddress");
   if (address) {
@@ -143,7 +126,6 @@ connectBtn?.addEventListener("click", () => {
   }
 });
 
-// Disconnect button
 disconnectBtn?.addEventListener("click", () => {
   disconnectWallet();
   walletMenu.classList.add("hidden");
@@ -156,5 +138,12 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// On load, check if already connected
-window.addEventListener("DOMContentLoaded", checkConnection);
+// On load, restore cached connection if desired
+window.addEventListener("DOMContentLoaded", async () => {
+  const saved = localStorage.getItem("connectedAddress");
+  if (saved) {
+    showConnected(saved);
+  } else {
+    showDisconnected();
+  }
+});
