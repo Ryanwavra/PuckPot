@@ -25,9 +25,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// ✅ Submit picks
+// ✅ Submit picks (wallet-native)
 app.post("/api/submit", async (req, res) => {
-  const { userId, picks, tieBreaker } = req.body;
+  const { walletAddress, picks, tieBreaker, signature } = req.body;
   try {
     const contestId = getContestId();
     const now = nowEST();
@@ -47,11 +47,20 @@ app.post("/api/submit", async (req, res) => {
       return res.status(403).json({ error: "Submissions are locked" });
     }
 
-    // Enforce one submission per user per contest
+    // Optional: verify signature to prove wallet ownership
+    // (requires ethers.js)
+    /*
+    const recovered = ethers.utils.verifyMessage(contestId, signature);
+    if (recovered.toLowerCase() !== walletAddress.toLowerCase()) {
+      return res.status(401).json({ error: "Signature verification failed" });
+    }
+    */
+
+    // Enforce one submission per wallet per contest
     const { data: existing } = await supabase
       .from("submissions")
       .select("id")
-      .eq("user_id", userId)
+      .eq("wallet_address", walletAddress)
       .eq("contest_id", contestId);
 
     if (existing && existing.length > 0) {
@@ -61,7 +70,14 @@ app.post("/api/submit", async (req, res) => {
     // Insert submission
     const { data, error } = await supabase
       .from("submissions")
-      .insert([{ user_id: userId, contest_id: contestId, picks, tie_breaker: tieBreaker }])
+      .insert([
+        {
+          wallet_address: walletAddress,
+          contest_id: contestId,
+          picks,
+          tie_breaker: tieBreaker,
+        },
+      ])
       .select();
 
     if (error) throw error;

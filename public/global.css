@@ -56,13 +56,27 @@ main {
 }
 
 #connect {
+  border: 1px solid #0074D9;
   border-radius: 30px;
   border-color: #0074D9;
   background-color: #0074D9;
   color: white;
   font-size: 0.8rem;
   padding: 0.3em 0.6em;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
+
+#connect:hover {
+  background-color: #005bb5;
+}
+
+#connect.connected {
+  background-color: #6c757d; /* grey */
+  border-color: #6c757d;
+  cursor: default;
+}
+
 
 
 /* ===============================
