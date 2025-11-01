@@ -24,6 +24,32 @@ const ACTIVE_NETWORK = "baseSepolia";
 // 🔧 Web3Modal setup
 // -----------------------------
 const providerOptions = {
+  metamask: {
+    display: {
+      name: "MetaMask",
+      description: "Connect with MetaMask Extension",
+    },
+    package: null,
+    connector: async () => {
+      if (window.ethereum && window.ethereum.isMetaMask) {
+        return window.ethereum;
+      }
+      throw new Error("MetaMask not found");
+    },
+  },
+  coinbaseInjected: {
+    display: {
+      name: "Coinbase Extension",
+      description: "Connect with Coinbase Browser Extension",
+    },
+    package: null,
+    connector: async () => {
+      if (window.ethereum && window.ethereum.isCoinbaseWallet) {
+        return window.ethereum;
+      }
+      throw new Error("Coinbase Extension not found");
+    },
+  },
   walletconnect: {
     package: window.WalletConnectProvider,
     options: {
@@ -48,8 +74,8 @@ const web3Modal = new window.Web3Modal.default({
   providerOptions,
 });
 
-let web3Provider; // ethers.js provider
-let web3Instance; // raw provider instance
+let web3Provider;
+let web3Instance;
 
 // -----------------------------
 // 🔧 Helpers
@@ -76,7 +102,7 @@ function showDisconnected() {
 // -----------------------------
 async function connectWallet() {
   try {
-    web3Instance = await web3Modal.connect(); // 🔥 Pops up wallet selector
+    web3Instance = await web3Modal.connect(); // 🔥 Modal pops up
     web3Provider = new ethers.providers.Web3Provider(web3Instance);
     const signer = web3Provider.getSigner();
     const address = await signer.getAddress();
