@@ -1,4 +1,7 @@
 const connectBtn = document.getElementById("connect");
+const walletMenu = document.getElementById("wallet-menu");
+const walletAddrDiv = document.getElementById("wallet-address");
+const disconnectBtn = document.getElementById("disconnect");
 
 // -----------------------------
 // 🔧 Network Config
@@ -27,19 +30,20 @@ const ACTIVE_NETWORK = "baseSepolia";
 // 🔧 Helpers
 // -----------------------------
 function shortenAddress(addr) {
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
+  return addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : "";
 }
 
-function updateButton(address) {
+function showConnected(address) {
   connectBtn.textContent = shortenAddress(address);
   connectBtn.classList.add("connected");
-  connectBtn.disabled = true;
+  walletAddrDiv.textContent = address;
 }
 
-function resetButton() {
+function showDisconnected() {
   connectBtn.textContent = "Connect Wallet";
   connectBtn.classList.remove("connected");
-  connectBtn.disabled = false;
+  walletAddrDiv.textContent = "";
+  walletMenu.classList.add("hidden");
 }
 
 async function ensureCorrectNetwork(provider) {
@@ -76,7 +80,7 @@ async function connectWallet() {
     const address = accounts[0];
     await ensureCorrectNetwork(provider);
 
-    updateButton(address);
+    showConnected(address);
     localStorage.setItem("connectedAddress", address);
   } catch (err) {
     alert(`Error: ${err.message}`);
@@ -91,15 +95,20 @@ async function checkConnection() {
     const accounts = await provider.request({ method: "eth_accounts" });
     if (accounts.length > 0) {
       const address = accounts[0];
-      updateButton(address);
+      showConnected(address);
       localStorage.setItem("connectedAddress", address);
     } else {
-      resetButton();
+      showDisconnected();
       localStorage.removeItem("connectedAddress");
     }
   } catch (err) {
     console.error("Error checking connection:", err);
   }
+}
+
+function disconnectWallet() {
+  localStorage.removeItem("connectedAddress");
+  showDisconnected();
 }
 
 // -----------------------------
@@ -108,19 +117,40 @@ async function checkConnection() {
 if (window.ethereum) {
   window.ethereum.on("accountsChanged", (accounts) => {
     if (accounts.length > 0) {
-      updateButton(accounts[0]);
+      showConnected(accounts[0]);
       localStorage.setItem("connectedAddress", accounts[0]);
     } else {
-      resetButton();
-      localStorage.removeItem("connectedAddress");
+      disconnectWallet();
     }
   });
 
   window.ethereum.on("chainChanged", () => {
-    // Reload to ensure dapp picks up new network
     window.location.reload();
   });
 }
 
-connectBtn?.addEventListener("click", connectWallet);
+// Main button: connect or toggle dropdown
+connectBtn?.addEventListener("click", () => {
+  const address = localStorage.getItem("connectedAddress");
+  if (address) {
+    walletMenu.classList.toggle("hidden");
+  } else {
+    connectWallet();
+  }
+});
+
+// Disconnect button
+disconnectBtn?.addEventListener("click", () => {
+  disconnectWallet();
+  walletMenu.classList.add("hidden");
+});
+
+// Close dropdown when clicking outside
+document.addEventListener("click", (e) => {
+  if (!connectBtn.contains(e.target) && !walletMenu.contains(e.target)) {
+    walletMenu.classList.add("hidden");
+  }
+});
+
+// On load, check if already connected
 window.addEventListener("DOMContentLoaded", checkConnection);

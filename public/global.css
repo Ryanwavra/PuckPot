@@ -71,10 +71,56 @@ main {
   background-color: #005bb5;
 }
 
+#connect.connected:hover {
+  background-color: #5a6268; /* slightly darker grey */
+}
+
+#wallet-menu button:hover {
+  background-color: #f5f5f5;
+}
+
 #connect.connected {
   background-color: #6c757d; /* grey */
   border-color: #6c757d;
-  cursor: default;
+  cursor: pointer;
+}
+
+.wallet-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-top: 4px;
+  min-width: 180px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  z-index: 100;
+}
+
+.wallet-menu.hidden {
+  display: none;
+}
+
+#wallet-address {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #eee;
+  word-break: break-all;
+}
+
+#wallet-menu button {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.connect {
+  position: relative;
+  display: inline-block;
 }
 
 
