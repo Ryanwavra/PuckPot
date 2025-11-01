@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <div id="wallet-status">Checking wallet…</div>
+    <script src="https://cdn.jsdelivr.net/npm/@coinbase/minikit@latest/dist/minikit.umd.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const el = document.getElementById("wallet-status");
+        if (window.MiniKit) {
+          const address = await window.MiniKit.ethereum.getAddress();
+          el.textContent = "Connected wallet: " + address;
+        } else {
+          el.textContent = "MiniKit not available. Open in Base app.";
+        }
+      });
+    </script>
+  </body>
+</html>
