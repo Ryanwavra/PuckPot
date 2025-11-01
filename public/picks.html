@@ -15,12 +15,6 @@
         <section class="header-section">
           <div class="header">
             <div class="logo"><img src="/images/PuckPotLogo.png" /></div>
-            <div class="connect"><button id="connect">Connect Wallet</button></div>
-            <div id="wallet-menu" class="wallet-menu hidden">
-              <div id="wallet-address"></div>
-              <button id="disconnect">Disconnect</button>
-            </div>
-          </div>
         </section>
 
         <!--Title-->
@@ -183,41 +177,46 @@
         </a>
         </footer>
     </div>
-    <script src="/scripts/picks.js"></script>
-<script src="/scripts/countdown.js"></script>
+        <!-- Load scripts -->
+    <script type="module" src="/scripts/picks.js"></script>
+    <script src="/scripts/countdown.js"></script>
+    <script>
+      fetch("/api/games")
+        .then(res => res.json())
+        .then(data => {
+          initCountdown(data.lock_time);
+        });
+    </script>
+    <script src="/scripts/contestStats.js"></script>
+    <script>
+      function getContestIdClient() {
+        const now = new Date();
+        const est = new Date(
+          now.toLocaleString("en-US", { timeZone: "America/New_York" })
+        );
+        const y = est.getFullYear();
+        const m = String(est.getMonth() + 1).padStart(2, "0");
+        const d = String(est.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      contestId = getContestIdClient();
+      console.log("Using contestId:", contestId);
+      window.initContestStats(contestId);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@coinbase/minikit@latest/dist/minikit.umd.js"></script>
 <script>
-  fetch("/api/games")
-    .then(res => res.json())
-    .then(data => {
-      initCountdown(data.lock_time);
-    });
-</script>
-<script src="/scripts/contestStats.js"></script>
-<script>
-  function getContestIdClient() {
-    const now = new Date();
-    const est = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/New_York" })
-    );
-    const y = est.getFullYear();
-    const m = String(est.getMonth() + 1).padStart(2, "0");
-    const d = String(est.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+  async function init() {
+    if (window.MiniKit) {
+      const address = await window.MiniKit.ethereum.getAddress();
+      console.log("Connected wallet:", address);
+    } else {
+      console.log("MiniKit not available (not inside Base app)");
+    }
   }
-
-  // ✅ assign to the existing variable, don’t redeclare
-  contestId = getContestIdClient();
-  console.log("Using contestId:", contestId);
-  window.initContestStats(contestId);
+  init();
 </script>
-
-<!-- Web3Modal + providers -->
-<script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-<script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@coinbase/wallet-sdk@3.7.1/dist/CoinbaseWalletSDK.umd.min.js"></script>
-<script src="/scripts/wallet.js" defer></script>
-
 
   </body>
 </html>

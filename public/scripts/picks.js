@@ -1,4 +1,5 @@
-// scripts/picks.js
+// public/scripts/picks.js
+import { getUserAddress, signMessage } from "./wallet.js";
 
 // -----------------------------
 // Shared utilities
@@ -12,14 +13,6 @@ async function safeFetchJson(url, opts = {}) {
     throw new Error(`Expected JSON at ${url}, got: ${text.slice(0, 160)}...`);
   }
   return res.json();
-}
-
-function getConnectedAddress() {
-  return localStorage.getItem("connectedAddress") || null;
-}
-
-function shortenAddress(addr) {
-  return addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : "";
 }
 
 // -----------------------------
@@ -161,7 +154,6 @@ async function hydrateUserPicks(walletAddress, cid) {
   if (!walletAddress || !cid) return;
 
   try {
-    // ✅ use cid (the function argument), not contestId
     const url = `/api/submission/${cid}?walletAddress=${encodeURIComponent(walletAddress)}`;
     const data = await safeFetchJson(url);
     if (!data.submission) return;
@@ -242,9 +234,9 @@ async function applyGameResults(cid) {
 // Submit picks
 // -----------------------------
 document.getElementById("submit-picks")?.addEventListener("click", async () => {
-  const userAddress = getConnectedAddress();
+  const userAddress = await getUserAddress();
   if (!userAddress) {
-    alert("Please connect your wallet before submitting picks.");
+    alert("Please open in the Base app to play.");
     return;
   }
 
@@ -262,18 +254,26 @@ document.getElementById("submit-picks")?.addEventListener("click", async () => {
   }
 
   try {
+    // Optional: cryptographic proof
+    const message = `PuckPot|contest:${contestId}|address:${userAddress}|ts:${Date.now()}`;
+    const signature = await signMessage(message);
+
     const result = await safeFetchJson("/api/submit", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    walletAddress: userAddress,   // ✅ new
-    picks: userPicks,
-    tieBreaker: parseInt(tieBreaker, 10),
-  }),
-});
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        walletAddress: userAddress,
+        picks: userPicks,
+        tieBreaker: parseInt(tieBreaker, 10),
+        signature,
+        message,
+      }),
+    });
 
     if (result.success) {
       alert("✅ Picks submitted successfully!");
+
+      // Lock submit button
       const btn = document.getElementById("submit-picks");
       if (btn) {
         btn.disabled = true;
@@ -287,6 +287,10 @@ document.getElementById("submit-picks")?.addEventListener("click", async () => {
           div.style.pointerEvents = "none";
         });
       });
+
+      // Lock tie breaker input
+      const tbInput = document.getElementById("tieBreaker");
+      if (tbInput) tbInput.disabled = true;
     } else {
       alert("❌ Submission failed: " + (result.error || "Unknown error"));
     }
@@ -302,11 +306,11 @@ document.getElementById("submit-picks")?.addEventListener("click", async () => {
 (async () => {
   try {
     const cid = await loadGames();
-    const walletAddress = getConnectedAddress(); // ✅ pull from localStorage
+    const walletAddress = await getUserAddress(); // from MiniKit
 
     if (cid) {
       if (walletAddress) {
-        await hydrateUserPicks(walletAddress, cid); // ✅ pass wallet address
+        await hydrateUserPicks(walletAddress, cid);
       }
       await applyGameResults(cid);
 
