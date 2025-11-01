@@ -202,7 +202,8 @@
     return `${y}-${m}-${d}`;
   }
 
-  const contestId = getContestIdClient();
+  // ✅ assign to the existing variable, don’t redeclare
+  contestId = getContestIdClient();
   console.log("Using contestId:", contestId);
   window.initContestStats(contestId);
 </script>

@@ -200,16 +200,25 @@ app.get("/api/contest-stats/:contestId", async (req, res) => {
 app.get("/api/submission/:contestId", async (req, res) => {
   try {
     const { contestId } = req.params;
-    const { userId } = req.query;
+    const { walletAddress } = req.query;
+
+    if (!walletAddress) {
+      return res.status(400).json({ error: "walletAddress is required" });
+    }
+
     const { data, error } = await supabase
       .from("submissions")
       .select("*")
       .eq("contest_id", contestId)
-      .eq("user_id", userId)
+      .eq("wallet_address", walletAddress)
       .maybeSingle();
+
+    // Supabase returns error code PGRST116 when no rows are found
     if (error && error.code !== "PGRST116") throw error;
+
     res.json({ submission: data || null });
   } catch (err) {
+    console.error("Error in /api/submission:", err);
     res.status(500).json({ error: err.message });
   }
 });
