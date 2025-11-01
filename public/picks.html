@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>PuckPot Picks</title>
     <link rel="stylesheet" href="global.css" />
     <link rel="stylesheet" href="picks.css" />
   </head>
@@ -11,18 +11,19 @@
   <body>
     <div class="app-container">
       <main>
-        <!--Header-->
+        <!-- Header -->
         <section class="header-section">
           <div class="header">
             <div class="logo"><img src="/images/PuckPotLogo.png" /></div>
+          </div>
         </section>
 
-        <!--Title-->
+        <!-- Title -->
         <section class="title">
-            <div>Make Your Picks:</div>
+          <div>Make Your Picks:</div>
         </section>
 
-        <!--Countdown-->
+        <!-- Countdown -->
         <section class="countdown-section">
           <div class="countdown">
             <div class="heading">PICKS LOCK IN:</div>
@@ -43,161 +44,99 @@
           </div>
         </section>
 
-        <!--Pot Info-->
+        <!-- Pot Info -->
         <section>
-            <div class="pot">
-                <div class="total-players">Players Entered: <span id="player-count">0</span></div>
-                <div class="total-pot">Current Pot: <span id="total-amount">$0.00</span></div>
+          <div class="pot">
+            <div class="total-players">
+              Players Entered: <span id="player-count">0</span>
             </div>
-        </section>
-
-        <!--Games displayed section-->
-        <section class="games-section">
-            <h2>Today's Games:</h2>
-            <div id="games-template" class="game-card" style="display: none;">
-                <div class="game-header">
-                    <p class="game-date-time">DATE • TIME</p>
-                    <p class="game-status">Upcoming</p>
-                </div>
-
-                <div class="game-content">
-                    <div class="away-team">
-                        <div class="away-symbol"><h3>SYMBOL</h3></div>
-                        <div class="team-label"><p>AWAY</p></div>
-                    </div>
-                    <div><p>VS</p></div>
-                    <div class="home-team">
-                        <div class="home-symbol"><h3>SYMBOL</h3></div>
-                        <div class="team-label"><p>HOME</p></div>
-
-                    </div>
-                </div>
+            <div class="total-pot">
+              Current Pot: <span id="total-amount">$0.00</span>
             </div>
-        </section>
-
-
-
-        <!--Tie Breaker-->
-        <section>
-            <div class="tie-guess">
-                <div class="tie-guess-content">Total goals in highest scoring game of the day (tiebreaker):</div>
-                <input type="number" id="tieBreaker" placeholder="Enter whole number: " min="0" required>
-            </div>
-        </section>
-
-        <!--Button-->
-        <section>
-            <div class="button">
-                <button id="submit-picks">Submit Picks</button>
-            </div>
-        </section>
-
-        <div id="wallet-status">Checking wallet…</div>
-<script>
-  async function init() {
-    const el = document.getElementById("wallet-status");
-    if (window.MiniKit) {
-      const address = await window.MiniKit.ethereum.getAddress();
-      el.textContent = "Connected wallet: " + address;
-    } else {
-      el.textContent = "MiniKit not available. Open in Base app.";
-    }
-  }
-  init();
-</script>
-
-        
-
-
-
-
-      </main>
-        <!--Footer-->
-        <footer class="footer">
-          <a href="index.html">
-            <div class="home-icon svg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                class="bi bi-house-door"
-                viewBox="0 0 16 16"
-              >
-                <path
-                  d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4z"
-                />
-              </svg>
-            </div>
-            <div class="home-word">Home</div>
-        </a>
-          <div class="picks">
-            <div class="picks-icon svg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                class="bi bi-bullseye"
-                viewBox="0 0 16 16"
-              >
-                <path
-                  d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"
-                />
-                <path
-                  d="M8 13A5 5 0 1 1 8 3a5 5 0 0 1 0 10m0 1A6 6 0 1 0 8 2a6 6 0 0 0 0 12"
-                />
-                <path
-                  d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8"
-                />
-                <path d="M9.5 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0" />
-              </svg>
-            </div>
-            <div class="picks-word">Picks</div>
           </div>
-          <a href="rankingsbeta.html" class="rankings">
-            <div class="rankings-icon svg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                class="bi bi-trophy"
-                viewBox="0 0 16 16"
-              >
-                <path
-                  d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5q0 .807-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33 33 0 0 1 2.5.5m.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935m10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935M3.504 1q.01.775.056 1.469c.13 2.028.457 3.546.87 4.667C5.294 9.48 6.484 10 7 10a.5.5 0 0 1 .5.5v2.61a1 1 0 0 1-.757.97l-1.426.356a.5.5 0 0 0-.179.085L4.5 15h7l-.638-.479a.5.5 0 0 0-.18-.085l-1.425-.356a1 1 0 0 1-.757-.97V10.5A.5.5 0 0 1 9 10c.516 0 1.706-.52 2.57-2.864.413-1.12.74-2.64.87-4.667q.045-.694.056-1.469z"
-                />
-              </svg>
+        </section>
+
+        <!-- Games -->
+        <section class="games-section">
+          <h2>Today's Games:</h2>
+          <div id="games-template" class="game-card" style="display: none;">
+            <div class="game-header">
+              <p class="game-date-time">DATE • TIME</p>
+              <p class="game-status">Upcoming</p>
             </div>
-            <div class="rankings-word">Rankings</div>
-        </a>
-          <a href="profilebeta.html" class="profile">
-            <div class="profile-icon svg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                class="bi bi-person"
-                viewBox="0 0 16 16"
-              >
-                <path
-                  d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"
-                />
-              </svg>
+            <div class="game-content">
+              <div class="away-team">
+                <div class="away-symbol"><h3>SYMBOL</h3></div>
+                <div class="team-label"><p>AWAY</p></div>
+              </div>
+              <div><p>VS</p></div>
+              <div class="home-team">
+                <div class="home-symbol"><h3>SYMBOL</h3></div>
+                <div class="team-label"><p>HOME</p></div>
+              </div>
             </div>
-            <div class="profile-word">Profile</div>
+          </div>
+        </section>
+
+        <!-- Tie Breaker -->
+        <section>
+          <div class="tie-guess">
+            <div class="tie-guess-content">
+              Total goals in highest scoring game of the day (tiebreaker):
+            </div>
+            <input
+              type="number"
+              id="tieBreaker"
+              placeholder="Enter whole number: "
+              min="0"
+              required
+            />
+          </div>
+        </section>
+
+        <!-- Submit Button -->
+        <section>
+          <div class="button">
+            <button id="submit-picks">Submit Picks</button>
+          </div>
+        </section>
+
+        <!-- Wallet Status -->
+        <div id="wallet-status">Checking wallet…</div>
+      </main>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <a href="index.html">
+          <div class="home-icon svg">🏠</div>
+          <div class="home-word">Home</div>
         </a>
-        </footer>
+        <div class="picks">
+          <div class="picks-icon svg">🎯</div>
+          <div class="picks-word">Picks</div>
+        </div>
+        <a href="rankingsbeta.html" class="rankings">
+          <div class="rankings-icon svg">🏆</div>
+          <div class="rankings-word">Rankings</div>
+        </a>
+        <a href="profilebeta.html" class="profile">
+          <div class="profile-icon svg">👤</div>
+          <div class="profile-word">Profile</div>
+        </a>
+      </footer>
     </div>
-        <!-- Load scripts -->
+
+    <!-- Load scripts -->
+    <!-- Load MiniKit first -->
+    <script src="https://cdn.jsdelivr.net/npm/@coinbase/minikit@latest/dist/minikit.umd.js"></script>
+
+    <!-- Then your app scripts -->
     <script type="module" src="/scripts/picks.js"></script>
     <script src="/scripts/countdown.js"></script>
     <script>
       fetch("/api/games")
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           initCountdown(data.lock_time);
         });
     </script>
@@ -214,23 +153,29 @@
         return `${y}-${m}-${d}`;
       }
 
-      contestId = getContestIdClient();
+      const contestId = getContestIdClient();
       console.log("Using contestId:", contestId);
       window.initContestStats(contestId);
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@coinbase/minikit@latest/dist/minikit.umd.js"></script>
-<script>
-  async function init() {
-    if (window.MiniKit) {
-      const address = await window.MiniKit.ethereum.getAddress();
-      console.log("Connected wallet:", address);
-    } else {
-      console.log("MiniKit not available (not inside Base app)");
-    }
-  }
-  init();
-</script>
-
+    <!-- Wallet init -->
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const el = document.getElementById("wallet-status");
+        if (window.MiniKit) {
+          try {
+            const address = await window.MiniKit.ethereum.getAddress();
+            console.log("Connected wallet:", address);
+            el.textContent = "Connected wallet: " + address;
+          } catch (err) {
+            console.error("Error fetching wallet:", err);
+            el.textContent = "Error connecting wallet.";
+          }
+        } else {
+          console.log("MiniKit not available (not inside Base app)");
+          el.textContent = "MiniKit not available. Open in Base app.";
+        }
+      });
+    </script>
   </body>
 </html>
